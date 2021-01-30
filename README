@@ -1,0 +1,62 @@
+
+                                mediad
+                                ======
+
+What is it?
+-----------
+mediad can be seen as something like an automounter for removable
+media in /media. In difference to the normal automounter, the
+configuration (what is mounted where) isn't fixed in some files, but
+determined dynamically by means of udev add and remove events.
+
+Motivation
+----------
+Handling of removable devices was never a real strength of Unix-like
+systems :-) There were several attempts at this (e.g., vold on
+Solaris, supermount in earlier Linux days), but all those had their
+weaknesses. Most of the time, you're still at mounting such media
+manually, therefore watching yourself for what devices are available
+and when to mount or unmount them (even if you don't recognize this as
+mounting, maybe you just click on an icon on your desktop ;-)
+
+As I don't use a desktop system like KDE or Gnome, where one employs
+click-to-mount, I previously had an autmounter running for removable
+media (floppy, CD-ROMs) with a short timeout. That's ok so far for a
+shell junkie, but the problems start when USB devices with varying
+devices names come into play. The automounter config file isn't
+flexible enough for this.
+
+So the idea of a dynamically configured automounter was born, and,
+voila, mediad came into existance. The idea was to receive all add and
+remove events for removable devices and create auto-mountpoints for
+those devices on-the-fly. udev came very handy for that, as its rule
+system allows easy calling of external programs on certain events, and
+feeding lots of info into them.
+
+Comparison
+----------
+Here my personal comparison of mediad with other programs with similar
+aim:
+
+ - vold: running volcheck manually all the time is simply boring...
+   why can't this happen automatically?
+
+ - supermount: this works for media like floppies, but doesn't handle
+   hotplug events at all; also requires a kernel patch and seems to be
+   a bit outdated
+
+ - submount: not as outdated as supermount, but also requires a kernel
+   patch and doesn't address hotplugging
+
+ - udev/dbus/hal/ivman: sounds fine so far, but too desktop-oriented
+   for my taste, and needs a hell of infrastructure...
+
+How to use
+----------
+Install the package, plug in a device, and look at /media :-)
+For the more interested ones, and for how to create your own
+customized aliases, look at the man pages (mediad(8) and
+mediad.conf(5)).
+
+Roman
+

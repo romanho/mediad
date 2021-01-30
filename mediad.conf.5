@@ -1,0 +1,145 @@
+.TH MEDIAD.CONF 5
+.SH NAME
+/etc/mediad/mediad.conf \- configuration file for mediad
+.SH DESCRIPTION
+The \fImediad.conf\fR files describes various options and settings for
+.BR mediad (8).
+The file is read first during startup and checked for changes whenever
+a new device is added.
+
+The format is line-oriented, i.e. one option per line. Lines starting
+with a hash mark (\fB#\fR) are comments, empty lines are ignored.
+Boolean values can be \fByes\fR, \fBy\fR, \fBtrue\fR, \fBt\fR,
+\fBon\fR, or \fB1\fR for true, and \fBno\fR, \fBn\fR, \fBfalse\fR,
+\fBf\fR, \fBoff\fR, or \fB0\fR for false. Strings must be enclosed in
+double quotes if they contain characters other than letters, digits,
+hyphen (\fB\-\fR), underscore (\fB_\fR), or percent sign (\fB%\fR).
+
+Available boolean options are:
+.SS scan-fstab = \fIboolean\fR
+If enabled, the daemon will scan /etc/fstab for mounts under /media
+(second column). If such a mount has option \fBnoauto\fR, \fImediad\fR
+guesses that it's a previously configured removable device and will
+add it. The mount point under /media becomes an alias. Also the
+options will be remembered for this device and filesystem type.
+Default: on.
+.SS model-alias = \fIboolean\fR
+If enabled and a model name for a device is known, \fImediad\fR will
+add an alias named after the model. If the device has partitions,
+multiple such aliases may be created, with "\-part\fIN\fR" appended.
+Default: on.
+.SS label-alias = \fIboolean\fR
+If enabled and a filesystem has a non-empty label, an alias named
+after the label will be created. Default: on.
+.SS hide-device-name = \fIboolean\fR
+If enabled, \fImediad\fR will hide the real device names in /media by
+prepending a dot to their names so that normal \fIls\fR won't show
+them. For example, /media/.fd0 will be used as mount point instead
+/media/fd0. Default: off.
+.SS debug = \fIboolean\fR
+If enabled, \fImediad\fR writes lots debugging messages to syslog.
+Default: off.
+
+
+The following two options take positive numbers as argument:
+.SS expire-timeout = \fIseconds\fR
+If a mounted filesystem under /media is not used for this many
+seconds, \fImediad\fR will umount it again. Default: 4s.
+.SS expire-frequency = \fIseconds\fR
+This is the interval to check if anything under a mount has been used.
+Default: 2s.
+
+
+These more complex options configure mount options and additional
+aliases. The both use conditions when to apply, for their syntax see
+the following section.
+.SS options \fIstring\fR \fBif\fR|\fBfor\fR \fIconditions\fR
+Use mount options \fIstring\fR if \fIconditions\fR are satisfied. You
+can use this, f.i., to force a certain gid for certain filesystems or
+the like (see under EXAMPLES). The conditions are tested starting with
+most specific ones continuing to more general ones: first \fBuuid\fR,
+\fBlabel\fR, \fBserial\fR, \fBvendor\fR, \fBmodel\fR, \fBdevice\fR,
+and last \fBfstype\fR. Options found in /etc/fstab have priority
+between \fBdevice\fR and \fBfstype\fR, so you can override fstab
+option in mediad.conf. If no conditions match at all, default options
+"nosuid,nodev" are used.
+
+Allowed options are all those documented in
+.BR mount (8),
+i.e. everyting \fImount\fR would accept. However, the pseudo-options
+evaluated by \fImount\fR itself (\fBauto\fR, \fBuser\fR, \fBusers\fR,
+and their \fBno\fR variants) are ignored. Same goes for the
+\fBfs=...\fR option of subfs.
+.SS alias \fIstring\fR \fBif\fR|\fBfor\fR \fIconditions\fR
+Add an additional alias \fIstring\fR for a device or partition if
+\fIconditions\fR are satisfied. The alias may contain the special
+sequences \fB%p\fR or \fB%P\fR. The former will expand to the
+partition number if the device is a partition, to nothing
+otherwise. The latter (\fB%P\fR) is similar, but expands to a more
+verbose "\-part\fIN\fR" phrase instead just the number.
+.SH CONDITIONS
+The condition expressions described here can be used for \fBoptions\fR
+and \fBalias\fR options. They are a list of one or more comparisons,
+separated by commas or \fB&&\fR (C-Style). If two or more comparisons
+are present, all of them must match to satisfy the whole condition.
+
+A single comparison consists of a keyword what to compare, an operator
+(\fB==\fR or \fB!=\fR) and a string to compare with. (Remember to
+enclose strings in double quotes that contain non-alphanumeric
+characters except \fB-\fR, \fB_\fR, or \fB%\fR!) The match keywords
+are:
+.SS device
+name of the device (without "/dev" prefix)
+.SS vendor
+vendor name associated with the device
+.SS model
+model or product name associated with the device
+.SS serial
+serial number for the device (not all devices have one)
+.SS partition
+partition number (devices that aren't partitions are number 0)
+.SS fstype
+type of filesystem (\fBvfat\fR, \fBiso9660\fR, ...)
+.SS uuid
+unique ID of the filesystem
+.SS label
+the filesystem's label
+
+If you want to see the values that apply to a certain filesystem, you
+can run \fIvol_id\fR on it. Most associations should be obvious, just
+note that the label corresponds to ID_FS_LABEL_SAFE, not ID_FS_LABEL.
+For vendor and model, you can also check
+/sys/block/\fIDEVICE\fR/device/{model,vendor}. Data for USB devices
+are visible in /proc/bus/usb/devices, too. Another method would be to
+watch udev add events with "udevmonitor --env".
+
+.SH EXAMPLES
+.nf
+
+# turn off model aliases
+model-alias = no
+
+# by default, files on VFAT filesystems should be owned by gid 100 and
+# have group write permission; however, if the filesystem label is
+# "MYFS", use gid 101 instead:
+options "nosuid,nodev,gid=100,fmask=113" if fstype==vfat
+options "nosuid,nodev,gid=101,fmask=113" if fstype==vfat, label==MYFS
+
+# if /etc/fstab contains:
+#   /dev/hdc /media/cdrom iso9660 ro,noauto,nosuid,nodev,gid=25 0 0
+# use that as default, but change the gid to 100 for a specific CD-ROM
+# with label "INSTALL"
+options "ro,noauto,nosuid,nodev,gid=100" if device==hdc && label=INSTALL
+
+# create special alias "camera" for /dev/camera (that name configured
+# via udev rules)
+alias camera for device=camera
+
+# create aliases "cf" and "cf1", "cf2"... for partitions of a specific
+# CF card reader; partition 4 should be also be "flash"
+alias cf%p if serial=="USB2.0_CardReader_CF_RW_562711469707"
+alias flash if serial=="USB2.0_CardReader_CF_RW_562711469707", partition==4
+
+.fi
+.SH SEE ALSO
+.BR mediad (8)

@@ -1,0 +1,77 @@
+.TH MEDIAD 8
+.SH NAME
+mediad \- automounter for removable media
+.SH SYNOPSIS
+.B mediad
+.SH DESCRIPTION
+\fImediad\fR is a daemon to provide access to removable media in the
+directory /media. Technically it is like an automounter (see
+.IR automount (8))
+with dynamic configuration provided by
+.IR udevd (8)
+and its support tool
+.IR vol_id (8).
+
+\fImediad\fR is intended to be run from \fIudev\fR rules and needs not
+be started as a command. It retrieves device information from certain
+environment variables (ACTION, DEVNAME, DEVPATH, ID_MODEL, ...)
+created by \fIudev\fR and passes them to the \fImediad\fR daemon. If
+no daemon is found to be running, one is started automatically.
+
+The daemon takes posession of /media and creates a directory for each
+device there. It also makes some aliases (symlinks), one named after
+the device model, one for the filesystem label (if any), and others as
+configured in \fI/etc/mediad/mediad.conf\fR. Model and label aliases
+can be suppressed by setting in this config file, too, if you want.
+
+Whenever a directory in /media is accessed, the \fImediad\fR daemon
+mounts the corresponding filesystem and unmounts it again after some
+idle time (default 4s). The directory and its aliases are removed when
+the device itself is removed, so by looking at /media you can also see
+which removable device are currently attached.
+
+During startup, the daemon also scans \fI/etc/fstab\fR for mounts
+under /media. All such mounts that have a 'noauto' option are
+registered as if the device would have been added via \fIudev\fR. It
+also uses the directory name after /media as an additional alias, and
+remembers the filesystem type and options to be used later if no
+options are configured in \fI/etc/mediad/mediad.conf\fR.
+.SH FILES
+.TP
+.B /etc/mediad/mediad.conf
+The configuration file for \fImediad\fR.
+.TP
+.B /etc/mediad/mediad.rules
+\fIudev\fR rules to call mediad on add and remove events on removable
+devices.
+.TP
+.B /dev/.mediad
+Socket for passing events to the daemon.
+.TP
+.B /etc/fstab
+Main filesystem table, scanned for mounts in /media for compability.
+.SH BUGS
+The Linux kernel allows reliable medium change detection only for a
+few devices classes, namely CD-ROMs and (PC) floppy disks. For all
+other devices, \fBmediad\fR has to assume the medium has always been
+changed and revalidate some information like filesystem type and
+label.
+
+However, this sounds worse as it is. First, many devices don't allow
+medium changes at all, e.g. USB sticks. And partitions never need
+change detection, because the kernel removes old partition devices
+(\fI/dev/sda1\fR for instance) when it detects a medium change, and
+send add events for the partitions found on the new medium. So this
+shortcoming mainly hits superfloppy formatted media (i.e., no
+partition table) in card readers, removable hard disk drives or the
+like. And those devices are usually fast enough that rescanning them
+isn't too time-consuming.
+.SH SEE ALSO
+.BR mediad.conf (5)
+.SH AUTHOR
+\fImediad\fR was written by Roman Hodek <roman@hodek.net>
+.SH COPYRIGHT
+Copyright (C) 2006 Roman Hodek
+.br
+This is free software; see the GNU General Public Licence version 2 or later
+for copying conditions. There is NO WARRANTY.

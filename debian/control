@@ -1,0 +1,14 @@
+Source: mediad
+Section: admin
+Priority: optional
+Maintainer: Roman Hodek <roman@hodek.net>
+Build-Depends: debhelper (>= 5), libvolume-id-dev
+Standards-Version: 3.6.2
+
+Package: mediad
+Architecture: any
+Depends: udev (>= 0.076), ${shlibs:Depends}
+Description: Daemon for automouting removable media, together with udev.
+ mediad makes /mediad an automount directory populated with removable media
+ devices found on your system, and devices dynamically added or removed via
+ calls from udev.

@@ -1,0 +1,58 @@
+#! /usr/bin/make -f
+#
+#   This program is free software; you can redistribute it and/or modify
+#   it under the terms of the GNU General Public License as published by
+#   the Free Software Foundation; version 2 dated June, 1991.
+#
+#   This program is distributed in the hope that it will be useful,
+#   but WITHOUT ANY WARRANTY; without even the implied warranty of
+#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#   GNU General Public License for more details.
+#
+#   You should have received a copy of the GNU General Public License
+#   along with this program;  if not, write to the Free Software
+#   Foundation, Inc., 675 Mass Ave., Cambridge, MA 02139, USA.
+
+tmpdir=debian/mediad
+
+OPTFLAGS = -g -O2 -fomit-frame-pointer  -I/home/ad027402pc1/roman/src/linux-2.6.16/include
+
+build:
+	make CFLAGS="$(OPTFLAGS)"
+	touch build
+
+clean:
+	dh_clean
+	make clean
+	rm -f `find -name '*~' -o -name '.#*' -o -name '.new*'`
+	rm -f build
+	rm -rf $(tmpdir)
+
+binary: binary-indep binary-arch
+
+binary-indep:
+# Nothing to be done here
+
+binary-arch: build
+	dh_testdir
+	dh_testroot
+	dh_clean
+	dh_installdirs
+	make install DESTDIR=`pwd`/$(tmpdir)
+	# symlinks in /etc/udev/rules.d shouldn't be in the package but be created
+	# by postinst script
+	rm -rf $(tmpdir)/etc/udev
+	dh_installinit --no-restart-on-upgrade -- start 90 S .
+	dh_installman
+	dh_installdocs README
+	dh_installchangelogs
+	dh_strip
+	dh_compress
+	dh_fixperms
+	dh_installdeb
+	dh_shlibdeps
+	dh_gencontrol
+	dh_builddeb
+
+.PHONY: binary binary-arch binary-indep clean
+

@@ -1,0 +1,8 @@
+#!/bin/sh
+set -e
+
+if [ "$1" != upgrade -a -d /etc/udev/rules.d -a -L /etc/udev/rules.d/z51_mediad.rules ]; then
+	rm /etc/udev/rules.d/z51_mediad.rules
+fi
+
+#DEBHELPER#

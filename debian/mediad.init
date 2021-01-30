@@ -1,0 +1,31 @@
+#!/bin/sh -e
+### BEGIN INIT INFO
+# Provides:          mediad
+# Required-Start:    udev 
+# Required-Stop:     
+# Default-Start:     S
+# Default-Stop:
+# Short-Description: Ensure mediad works by reloading udev
+### END INIT INFO
+
+case "$1" in
+    start)
+		/etc/init.d/udev reload
+		/sbin/mediad start >/dev/null
+		;;
+    stop)
+		killall mediad
+		;;
+	restart|force-reload)
+		$0 stop
+		$0 start
+		;;
+    reload)
+		;;
+    *)
+	    echo "Usage: /etc/init.d/mediad {start|stop|restart|reload|force-reload}"
+	    exit 1
+    ;;
+esac
+
+exit 0
