@@ -15,7 +15,7 @@
 
 tmpdir=debian/mediad
 
-OPTFLAGS = -g -O2 -fomit-frame-pointer  -I/home/ad027402pc1/roman/src/linux-2.6.16/include
+OPTFLAGS = -g -O2 -fomit-frame-pointer  -I/usr/src/linux/include
 
 build:
 	make CFLAGS="$(OPTFLAGS)"

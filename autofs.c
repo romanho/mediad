@@ -31,6 +31,7 @@
 #include <sys/ioctl.h>
 #include <sys/mount.h>
 #include <linux/types.h>
+#include <linux/kd.h>
 #include <linux/auto_fs4.h>
 #include "mediad.h"
 
@@ -40,7 +41,74 @@ const char *autodir = "/media";
 static int n_mounted = 0;
 static pthread_mutex_t expire_lock = PTHREAD_MUTEX_INITIALIZER;
 static pthread_cond_t expire_cond = PTHREAD_COND_INITIALIZER;
+static pthread_mutex_t blink_lock = PTHREAD_MUTEX_INITIALIZER;
+static pthread_t blinker_thread = 0;
 static int pfd, ifd;
+
+
+static int toggle_led(int fd, int led)
+{
+	char status;
+	
+	if (ioctl(fd, KDGETLED, &status)) {
+		error("KDGETLED: %s", strerror(errno));
+		return -1;
+	}
+	status ^= led;
+	if (ioctl(fd, KDSETLED, status)) {
+		error("KDSETLED: %s", strerror(errno));
+		return -1;
+	}
+	return 0;
+}
+
+#define BLINKDELAY_ON			10
+#define BLINKDELAY_OFF_LONG		1440
+#define BLINKDELAY_OFF_SHORT	140
+#define N_BLINK_END				6
+
+static void *blinker(void *dummy)
+{
+	int ttyfd;
+	int i;
+
+	if ((ttyfd = open("/dev/tty0", O_RDONLY)) < 0) {
+		error("/dev/tty: %s", strerror(errno));
+		return;
+	}
+	debug("blinker thread started");
+
+  repeat:
+	while(n_mounted > 0) {
+		if (toggle_led(ttyfd, config.blink_led))
+			break;
+		usleep(BLINKDELAY_ON*1000);
+		if (toggle_led(ttyfd, config.blink_led))
+			break;
+		usleep(BLINKDELAY_OFF_LONG*1000);
+	}
+	debug("blinker thread signalling all unmounted");
+
+	for(i = 0; i < N_BLINK_END; ++i) {
+		if (toggle_led(ttyfd, config.blink_led))
+			break;
+		usleep(BLINKDELAY_ON*1000);
+		if (toggle_led(ttyfd, config.blink_led))
+			break;
+		usleep(BLINKDELAY_OFF_SHORT*1000);
+	}
+
+	pthread_mutex_lock(&blink_lock);
+	if (n_mounted > 0) {
+		pthread_mutex_unlock(&blink_lock);
+		debug("blinker thread resuming");
+		goto repeat;
+	}
+	debug("blinker thread exiting");
+	close(ttyfd);
+	blinker_thread = 0;
+	pthread_mutex_unlock(&blink_lock);
+}
 
 
 void inc_mounted(void)
@@ -48,7 +116,18 @@ void inc_mounted(void)
 	pthread_mutex_lock(&expire_lock);
 	n_mounted++;
 	pthread_cond_signal(&expire_cond);
+
+	if (config.blink_led && n_mounted == 1) {
+		pthread_mutex_lock(&blink_lock);
+		if (!blinker_thread) {
+			if (pthread_create(&blinker_thread, &thread_detached,
+							   blinker, NULL))
+				warning("failed to create blinker thread");
+		}
+		pthread_mutex_unlock(&blink_lock);
+	}
 	pthread_mutex_unlock(&expire_lock);
+	
 	debug("n_mounted=%d", n_mounted);
 }
 

@@ -69,8 +69,7 @@ int do_mount(const char *name)
 {
 	mnt_t *m;
 	int forced_ro = 0;
-	int iopts = 0;
-	const char *options, *sopts;
+	const char *options;
 	char path[strlen(autodir)+strlen(name)+2];
 
 	pthread_mutex_lock(&mounts_lock);
@@ -96,42 +95,39 @@ int do_mount(const char *name)
 
 	if (!(options = find_fsoptions(m)))
 		options = DEF_FSOPTIONS;
-	parse_mount_options(options, &iopts, &sopts);
-
 	mkpath(path, name);
-	if (mount(m->dev, path, m->type, iopts, sopts) == 0)
-		goto ok;
-	if (errno == EROFS) {
-		iopts |= MS_RDONLY;
-		forced_ro = 1;
-		if (mount(m->dev, path, m->type, iopts, sopts) == 0)
-			goto ok;
-	}
-	if (no_medium_errno()) {
-		set_no_medium_present(m);
-		if (m->parent) {
-			rm_aliases(m, WAT_FSSPEC);
-			mnt_free_aliases(m, AF_FSSPEC, AF_FSSPEC);
-		}
-	}
-	pthread_mutex_unlock(&m->lock);
-	free((char*)sopts);
-	return -1;
-
-  ok:
-	if (forced_ro) {
+	switch(call_mount(m->dev, path, m->type, options)) {
+	  case 0:
+		break;
+	  case 1: {
+		  /* read-only had been forced */
 		char *newo = alloca(strlen(options)+4);
 		strcpy(newo, options);
 		strcat(newo, ",ro");
 		options = newo;
+		forced_ro = 1;
+		break;
+	  }
+	  default:
+		if (no_medium_errno()) {
+			set_no_medium_present(m);
+			if (m->parent) {
+				rm_aliases(m, WAT_FSSPEC);
+				mnt_free_aliases(m, AF_FSSPEC, AF_FSSPEC);
+			}
+		}
+		else
+			error("mount(%s): %s", m->dev, strerror(errno));
+		pthread_mutex_unlock(&m->lock);
+		return -1;
 	}
+	
 	m->mounted = 1;
 	add_mtab(m->dev, path, m->type, options);
 	debug("mounted %s on %s (type %s%s)",
 		  m->dev, path, m->type, forced_ro ? ", forced read-only" : "");
 	pthread_mutex_unlock(&m->lock);
 	inc_mounted();
-	free((char*)sopts);
 	return 0;
 }
 
@@ -584,7 +580,7 @@ int daemon_main(void)
 	listen_fd = open_socket();
 	start_automount(autodir);
 	signal(SIGHUP, SIG_IGN);
-	signal(SIGCHLD, SIG_IGN);
+	signal(SIGCHLD, SIG_DFL);
 	signal(SIGINT, do_shutdown);
 	signal(SIGQUIT, do_shutdown);
 	signal(SIGTERM, do_shutdown);

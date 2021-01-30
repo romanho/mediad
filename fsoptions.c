@@ -35,13 +35,36 @@ fsoptions_t *fsoptions = NULL;
 static pthread_mutex_t fsoptions_lock = PTHREAD_MUTEX_INITIALIZER;
 
 
+static char *filter_options(const char *_opts)
+{
+	char opts[strlen(_opts)+1];
+	char sopts[strlen(_opts)+1];
+	char *p;
+
+	/* strtok() writes to the string, so make a writeable copy */
+	strcpy(opts, _opts);
+	sopts[0] = '\0';
+	for(p = strtok(opts, ","); p; p = strtok(NULL, ",")) {
+		/* filter out options that have meaning only in /etc/fstab */
+		if (strcmp(p, "auto") != 0 && strcmp(p, "noauto") != 0 &&
+			strcmp(p, "user") != 0 && strcmp(p, "nouser") != 0 &&
+			strcmp(p, "users") != 0 && strcmp(p, "nousers") != 0 &&
+			strncmp(p, "fs=", 3) != 0) {
+			if (sopts[0])
+				strcat(sopts, ",");
+			strcat(sopts, p);
+		}
+	}
+	return xstrdup(sopts);
+}
+
 void add_fsoptions(mcond_t *cond, const char *opts)
 {
 	fsoptions_t *o = xmalloc(sizeof(fsoptions_t)), **oo;
 
 	o->cond = cond;
 	o->prio = mcond_prio(cond);
-	o->options = xstrdup(opts);
+	o->options = filter_options(opts);
 
 	pthread_mutex_lock(&fsoptions_lock);
 	/* keep sorted by prio, append at end within same level */

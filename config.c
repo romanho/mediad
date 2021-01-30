@@ -25,10 +25,12 @@
 #include <ctype.h>
 #include <errno.h>
 #include <sys/stat.h>
+#include <linux/kd.h>
 #include "mediad.h"
 
 
 config_t config;
+#define FORCE_DEBUG 1
 
 static time_t config_mtime = 0;
 static const char *parse_error, *parse_error_arg;
@@ -160,6 +162,30 @@ static int getnum(char **p)
 	return val;
 }
 
+static int getled(char **p)
+{
+	char *w;
+	int val;
+
+	if (!(w = getword(p)))
+		PERRI("expected led name missing");
+	if (strcasecmp(w, "num") == 0 ||
+		strcasecmp(w, "numlock") == 0)
+		val = LED_NUM;
+	else if (strcasecmp(w, "cap") == 0 ||
+			 strcasecmp(w, "caps") == 0 ||
+			 strcasecmp(w, "capslock") == 0)
+		val = LED_CAP;
+	else if (strcasecmp(w, "scr") == 0 ||
+			 strcasecmp(w, "scroll") == 0 ||
+			 strcasecmp(w, "scrlock") == 0 ||
+			 strcasecmp(w, "scrolllock") == 0)
+		val = LED_SCR;
+	else
+		PERRIA("bad led name '%s'", w);
+	return val;
+}
+
 static mcond_t *getmcond(char **p)
 {
 	char *w, *value;
@@ -230,7 +256,7 @@ static mcond_t *getmcondlist(char **p)
 
 static void parse_line(int lno, char *line)
 {
-	char *p = line, *w;
+	char *p = line, *w, *w2;
 	mcond_t *c;
 	int n;
 
@@ -261,6 +287,11 @@ static void parse_line(int lno, char *line)
 			goto parse_err;
 		config.debug = n;
 	}
+	else if (strcmp(w, "blink-led") == 0) {
+		if (getassign(&p) || (n = getled(&p)) < 0)
+			goto parse_err;
+		config.blink_led = n;
+	}
 	else if (strcmp(w, "expire-frequency") == 0) {
 		if (getassign(&p) || (n = getnum(&p)) < 0)
 			goto parse_err;
@@ -289,6 +320,13 @@ static void parse_line(int lno, char *line)
 			goto parse_err;
 		add_alias(c, w);
 	}
+	else if (strcmp(w, "use") == 0) {
+		if (!(w = getstr(&p)) ||
+			!(w2 = getword(&p)) || strcmp(w2, "instead") != 0 ||
+			!(w2 = getstr(&p)))
+			goto parse_err;
+		add_fstype_replace(w2, w);
+	}
 	else {
 		parse_error = "unknown keyword %s";
 		parse_error_arg = w;
@@ -314,9 +352,12 @@ static void parse_line(int lno, char *line)
 static void purge_config(void)
 {
 	config = (config_t){ DEF_AUTOFS_EXP_FREQ, DEF_AUTOFS_TIMEOUT,
-						 0, 0, 0, 0, 0 };
+						 0, 0, 0, 0, 0, 0 };
 	purge_fsoptions();
 	purge_aliases();
+	purge_fstype_replace();
+	if (FORCE_DEBUG)
+		config.debug = 1;
 }
 
 void read_config(void)

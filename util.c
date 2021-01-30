@@ -124,7 +124,7 @@ static void vid_log(int priority, const char *file, int line, const char *format
 	char log_str[1024];
 	va_list args;
 
-	if (priority >= LOG_INFO)
+	if (!config.debug && priority >= LOG_INFO)
 		return;
 	
 	va_start(args, format);

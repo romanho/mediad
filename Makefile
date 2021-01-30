@@ -5,7 +5,7 @@ LDFLAGS =
 LIBS    = -lvolume_id -lpthread
 
 OBJS = main.o daemon.o autofs.o changed.o config.o \
-	   fsoptions.o aliases.o mcond.o mtab.o util.o
+	   mount.o fsoptions.o aliases.o mcond.o mtab.o util.o
 
 DESTDIR = 
 BINDIR  = /sbin

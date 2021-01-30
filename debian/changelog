@@ -1,3 +1,19 @@
+mediad (0.6) unstable; urgency=low
+
+  * Use "mount.$FSTYPE" helper binaries for filesystem where such a helper is
+    available (instead directly using the mount() syscall).
+  * New syntax "use FSTYPE2 instead FSTYPE1" in config file, to actually use
+    FSTYPE2 when libvolume-id tells use FSTYPE1 to use. This can be used, for
+    example, when you want 'ntfs-fuse' instead kernel 'ntfs'.
+  * New blink feature: If there is "blink-led = <LEDNAME>" in the config file,
+    the named keyboard LED ("ScrollLock", "NumLock", or "CapsLock") will
+    blink slowly while some directory under /media is mounted. After
+    everything is unmouted, it will blink fast for a short time. This might
+    help to see when a medium isn't used anymore and can be removed.
+  * Updated man pages.
+
+ -- Roman Hodek <roman@hodek.net>  Fri, 22 Feb 2008 09:41:42 +0100
+
 mediad (0.5) unstable; urgency=low
 
   * Suppress 'new /media/... available' message for full devices (i.e. the

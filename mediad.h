@@ -107,6 +107,7 @@ typedef struct _mnt {
 typedef struct _config {
 	unsigned int  expire_freq;
 	unsigned long expire_timeout;
+	unsigned char blink_led;
 	unsigned debug : 1;
 	unsigned no_scan_fstab : 1;
 	unsigned no_model_alias : 1;
@@ -156,6 +157,12 @@ void set_no_medium_present(mnt_t *m);
 /* config.c */
 extern config_t config;
 void read_config(void);
+
+/* mount.c */
+void add_fstype_replace(const char *from, const char *to);
+void purge_fstype_replace(void);
+int call_mount(const char *dev, const char *path,
+			   const char *type, const char *options);
 
 /* fsoptions.c */
 void add_fsoptions(mcond_t *cond, const char *opts);

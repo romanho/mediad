@@ -50,8 +50,20 @@ This is the interval to check if anything under a mount has been used.
 Default: 2s.
 
 
+And another option with a string argument:
+.SS blink-led = \fIled\fR
+If a LED name is set here, \fImediad\fR will turn on its blinking
+feature. This means that while any medium is mounted, the named
+keyboard LED will blink slowly (once for 10ms every 1.5s). And when
+the last medium has been unmounted again, the LED will blink fast (6
+times in 0.9s) to signal that a medium can be removed safely. The
+accepted LED names are "Cap", "Caps", "CapsLock", "Num", "NumLock",
+"Scr", "Scroll", "ScrLock", and "ScrollLock" (case-insensitive).
+Default: off.
+
+
 These more complex options configure mount options and additional
-aliases. The both use conditions when to apply, for their syntax see
+aliases. They both use conditions when to apply, for their syntax see
 the following section.
 .SS options \fIstring\fR \fBif\fR|\fBfor\fR \fIconditions\fR
 Use mount options \fIstring\fR if \fIconditions\fR are satisfied. You
@@ -77,6 +89,14 @@ sequences \fB%p\fR or \fB%P\fR. The former will expand to the
 partition number if the device is a partition, to nothing
 otherwise. The latter (\fB%P\fR) is similar, but expands to a more
 verbose "\-part\fIN\fR" phrase instead just the number.
+.SS use \fIfstype2\fR \fBinstead\fR \fIfstype1\fR
+This statement can be used if you want a different filesystem type for
+mounting than \fBvol_id\fR reports. Most prominent example is
+when you want to use the userspace NTFS driver for a Windows volume:
+\fBvol_id\fR will tell \fBmediad\fR that the filesystem type is
+"ntfs", but this is the name of the NTFS driver in the kernel. The
+userspace FUSE driver is called "ntfs-fuse". With a \fBuse\fR
+statement, you can tell \fBmediad\fR to do the intended replacement.
 .SH CONDITIONS
 The condition expressions described here can be used for \fBoptions\fR
 and \fBalias\fR options. They are a list of one or more comparisons,
@@ -118,6 +138,12 @@ watch udev add events with "udevmonitor --env".
 
 # turn off model aliases
 model-alias = no
+
+# turn on blink feature
+blink-led = scroll
+
+# don't use kernel NTFS, but userspace FUSE driver
+use ntfs-fuse instead ntfs
 
 # by default, files on VFAT filesystems should be owned by gid 100 and
 # have group write permission; however, if the filesystem label is
