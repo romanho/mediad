@@ -232,7 +232,7 @@ void rm_dir(mnt_t *m);
 void send_num(int fd, unsigned num);
 void send_str(int fd, const char *str);
 unsigned recv_num(int fd);
-void recv_str(int fd, const char **p);
+void recv_str(int fd, char **p);
 unsigned int linux_version_code(void);
 
 #endif /* MEDIAD_H */

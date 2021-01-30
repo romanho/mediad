@@ -220,9 +220,9 @@ void mnt_add_alias(mnt_t *m, const char *a, unsigned flags)
 void mnt_free_aliases(mnt_t *m, unsigned mask, unsigned flags)
 {
 	alist_t **a = &m->aliases;
-	char path[PATH_MAX], *mpnt;
+	char path[PATH_MAX];
 
-	mpnt = mkpath(path, m->dir);
+	mkpath(path, m->dir);
 
 	while(*a) {
 		if (((*a)->flags & mask) == flags) {

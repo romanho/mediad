@@ -331,7 +331,7 @@ static void *delayed_message(void *mnt)
 }
 
 static void add_mount(const char *dev, const char *perm_alias,
-					  unsigned n, const char **ids)
+					  unsigned n, char **ids)
 {
 	mnt_t *m;
 	unsigned i, mpres;
@@ -371,7 +371,7 @@ static void add_mount(const char *dev, const char *perm_alias,
 	if (!m->parent)
 		m->medium_present = check_medium(m->dev);
 	mpres = m->parent ? m->parent->medium_present:m->medium_present;
-//	if (mpres && !m->type)
+	if (mpres && !m->type)
 		/* if no FS_TYPE passed but there is a medium, run vol_id ourselves */
 		run_vol_id(m);
 
@@ -431,7 +431,7 @@ static void add_mount(const char *dev, const char *perm_alias,
 static void rm_mount(const char *dev)
 {
 	mnt_t *m, **mm;
-	char path[PATH_MAX], *mpnt;
+	char path[PATH_MAX];
 	int try = 6;
 
 	debug("remove request for %s", dev);
@@ -467,7 +467,7 @@ static void rm_mount(const char *dev)
 	*mm = m->next;
 	pthread_mutex_unlock(&mounts_lock);
 
-	mpnt = mkpath(path, m->dir);
+	mkpath(path, m->dir);
 	if (umount(path) == 0)
 		dec_mounted();
 	else if (errno == EBUSY) {
@@ -510,8 +510,7 @@ static void *handle_cmd(void *arg)
 {
 	int fd = (long)arg;
 	char cmd;
-	const char *dev;
-	char **ids = NULL;
+	char *dev, **ids = NULL;
 	unsigned n, i;
 
 	pthread_sigmask(SIG_BLOCK, &termsigs, NULL);

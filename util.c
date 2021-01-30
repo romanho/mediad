@@ -267,7 +267,7 @@ unsigned recv_num(int fd)
 	return ntohs(u.i);
 }
 
-void recv_str(int fd, const char **p)
+void recv_str(int fd, char **p)
 {
 	int len = recv_num(fd);
 
