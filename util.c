@@ -36,7 +36,7 @@
 #include <sys/sysmacros.h>
 #include <sys/utsname.h>
 #include <netinet/in.h>
-#include <libvolume_id.h>
+#include <blkid/blkid.h>
 #include <linux/version.h>
 #include "mediad.h"
 
@@ -120,24 +120,7 @@ void parse_id(mnt_t *m, const char *line)
 	Iget("ID_FS_UUID",			uuid);
 	Iget("ID_FS_LABEL",			label);
 }
-
-static void vid_log(int priority, const char *file, int line, const char *format, ...)
-{
-	char log_str[1024];
-	va_list args;
-
-//	if (!config.debug && priority >= LOG_INFO)
-		return;
-	
-	va_start(args, format);
-	vsnprintf(log_str, sizeof(log_str), format, args);
-	log_str[sizeof(log_str)-1] = '\0';
-	va_end(args);
-	
-	debug("volume_id: %s:%d: %s", file, line, log_str);
-}
-
-static void replace_untrusted_chars(char *p)
+void replace_untrusted_chars(char *p)
 {
 	for(; *p; ++p) {
 		if (*p < ' ' || strchr("!\"&'()*;<>[\\]^`{|}~", *p))
@@ -147,44 +130,38 @@ static void replace_untrusted_chars(char *p)
 
 void run_vol_id(mnt_t *m)
 {
-	int fd;
-	struct volume_id *vid = NULL;
-	uint64_t size;
+	blkid_probe pr;
 	const char *p;
+	size_t len;
 
-	debug("calling volume_id for %s", m->dev);
-	volume_id_log_fn = vid_log;
-
-	if ((fd = open(m->dev, O_RDONLY)) < 0) {
-		set_no_medium_present(m);
-		return;
-	}	
-	if (!(vid = volume_id_open_fd(fd))) {
-		close(fd);
+	debug("calling blkid for %s", m->dev);
+	if (!(pr = blkid_new_probe_from_filename(m->dev))) {
+		//error("%s: failed to open for blkid", m->dev);
 		return;
 	}
-	if (ioctl(fd, BLKGETSIZE64, &size) != 0)
-		size = 0;
+
+	blkid_probe_set_partitions_flags(pr, BLKID_PARTS_ENTRY_DETAILS);
+	blkid_probe_enable_superblocks(pr, 1);
+	if (blkid_do_safeprobe(pr) < 0)
+		//error();
+		goto out;
 
 	xfree(&m->type);
 	xfree(&m->uuid);
 	xfree(&m->label);
 
-	if (volume_id_probe_filesystem(vid, 0, size) == 0) {
-		if (volume_id_get_label(vid, &p)) {
-			char *label = xstrdup(p);
-			replace_untrusted_chars(label);
-			m->label = label;
-		}
-		if (volume_id_get_type(vid, &p))
-			m->type = xstrdup(p);
-		if (volume_id_get_uuid(vid, &p))
-			m->uuid = xstrdup(p);
+	if (blkid_probe_lookup_value(pr, "LABEL", &p, &len) == 0) {
+		char *label = xstrdup(p);
+		replace_untrusted_chars(label);
+		m->label = label;
 	}
-	volume_id_close(vid);
-	close(fd);
+	if (blkid_probe_lookup_value(pr, "TYPE", &p, &len) == 0)
+		m->type = xstrdup(p);
+	if (blkid_probe_lookup_value(pr, "UUID", &p, &len) == 0)
+		m->uuid = xstrdup(p);
+  out:
+	blkid_free_probe(pr);
 }
-
 
 static __thread unsigned find_maj, find_min;
 static __thread char *found_path;

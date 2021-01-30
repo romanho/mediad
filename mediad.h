@@ -224,6 +224,7 @@ void xfree(const char **p);
 char *mkpath(char *buf, const char *add);
 const char *getid(unsigned n, const char **ids, const char *what);
 void parse_id(mnt_t *m, const char *line);
+void replace_untrusted_chars(char *p);
 void run_vol_id(mnt_t *m);
 void find_devpath(mnt_t *m);
 void mk_dir(mnt_t *m);

@@ -371,7 +371,7 @@ static void add_mount(const char *dev, const char *perm_alias,
 	if (!m->parent)
 		m->medium_present = check_medium(m->dev);
 	mpres = m->parent ? m->parent->medium_present:m->medium_present;
-	if (mpres && !m->type)
+//	if (mpres && !m->type)
 		/* if no FS_TYPE passed but there is a medium, run vol_id ourselves */
 		run_vol_id(m);
 
@@ -510,7 +510,8 @@ static void *handle_cmd(void *arg)
 {
 	int fd = (long)arg;
 	char cmd;
-	const char *dev, **ids = NULL;
+	const char *dev;
+	char **ids = NULL;
 	unsigned n, i;
 
 	pthread_sigmask(SIG_BLOCK, &termsigs, NULL);
@@ -529,8 +530,10 @@ static void *handle_cmd(void *arg)
 	n = recv_num(fd);
 	if (n > 0) {
 		ids = alloca(n*sizeof(char*));
-		for(i = 0; i < n; ++i)
+		for(i = 0; i < n; ++i) {
 			recv_str(fd, ids+i);
+			replace_untrusted_chars(ids[i]);
+		}
 	}
 	close(fd);
 	

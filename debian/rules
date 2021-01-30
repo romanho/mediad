@@ -15,7 +15,7 @@
 
 tmpdir=debian/mediad
 
-OPTFLAGS = -g -O2 -fomit-frame-pointer
+OPTFLAGS = -g -O2
 
 build:
 	make CFLAGS="$(OPTFLAGS)"
@@ -42,7 +42,7 @@ binary-arch: build
 	# symlinks in /etc/udev/rules.d shouldn't be in the package but be created
 	# by postinst script
 	rm -rf $(tmpdir)/etc/udev
-	dh_installinit --no-restart-on-upgrade -- start 90 S .
+	dh_installinit --no-stop-on-upgrade -- start 90 S .
 	dh_installman
 	dh_installdocs README
 	dh_installchangelogs

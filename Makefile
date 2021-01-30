@@ -2,7 +2,7 @@ CC      = gcc
 CFLAGS  = -O2 -Wall
 LD      = gcc
 LDFLAGS =
-LIBS    = -lvolume_id -lpthread
+LIBS    = -lblkid -lpthread
 
 OBJS = main.o daemon.o autofs.o changed.o config.o \
 	   mount.o fsoptions.o aliases.o mcond.o mtab.o util.o
@@ -19,7 +19,7 @@ mediad: $(OBJS)
 $(OBJS): mediad.h
 
 clean:
-	rm -f mediad $(OBJS) core
+	rm -f mediad $(OBJS) core build
 
 install: mediad
 	install -d $(DESTDIR)$(BINDIR)
