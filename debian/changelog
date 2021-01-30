@@ -1,3 +1,26 @@
+mediad (0.10) unstable; urgency=low
+
+  * Autofs in kernels since 3.3 cannot handle a split read anymore, so
+    read max. size at once from pipe.
+
+ -- Roman Hodek <roman@hodek.net>  Wed, 06 Jun 2012 10:47:20 +0200
+
+mediad (0.9) unstable; urgency=low
+
+  * The waitpid() call in call_mount() seems sometimes not to write to the
+    status variable... (64bit only?) An initialization of status at least
+    avoids that every mount call fails.
+  * add_mtab() should not be called if we mounted via a helper binary
+    (assuming the helper does that addition).
+
+ -- Roman Hodek <roman@hodek.net>  Sat, 30 Oct 2010 13:12:36 +0200
+
+mediad (0.8) unstable; urgency=low
+
+  * Added missing close().
+
+ -- Roman Hodek <roman@hodek.net>  Thu, 06 Aug 2009 12:48:15 +0200
+
 mediad (0.7) unstable; urgency=low
 
   * If parent device (e.g., sda) of a partition (sda1) arrives later, the

@@ -330,6 +330,11 @@ static void parse_line(int lno, char *line)
 			goto parse_err;
 		add_alias(c, w);
 	}
+	else if (strcmp(w, "no_automount") == 0) {
+		if (getif(&p) || !(c = getmcondlist(&p)))
+			goto parse_err;
+		add_mntoptions(c, MOPT_NO_AUTOMOUNT);
+	}
 	else if (strcmp(w, "use") == 0) {
 		if (!(w = getstr(&p)) ||
 			!(w2 = getword(&p)) || strcmp(w2, "instead") != 0 ||
@@ -364,6 +369,7 @@ static void purge_config(void)
 	config = (config_t){ DEF_AUTOFS_EXP_FREQ, DEF_AUTOFS_TIMEOUT,
 						 0, 0, 0, 0, 0, 0, 0, 0 };
 	purge_fsoptions();
+	purge_mntoptions();
 	purge_aliases();
 	purge_fstype_replace();
 	if (FORCE_DEBUG)

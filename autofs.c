@@ -33,6 +33,7 @@
 #include <linux/types.h>
 #include <linux/kd.h>
 #include <linux/auto_fs4.h>
+#include <linux/version.h>
 #include "mediad.h"
 
 
@@ -206,10 +207,32 @@ static int read_kernel_packet(int fd, union autofs_packet_union *pkt)
 {
 	char *p;
 	size_t len = sizeof(struct autofs_packet_hdr);
+	size_t n;
+	static int kern_vers = -1;
 
+	if (kern_vers < 0)
+		kern_vers = linux_version_code();
+
+	if (kern_vers >= KERNEL_VERSION(3, 3, 0)) {
+		len = sizeof(struct autofs_v5_packet);
+	  repeat:
+		n = read(fd, pkt, len);
+		if (n < 0) {
+			if (errno == EINTR)
+				goto repeat;
+			else
+				fatal("pipe read error: %s", strerror(errno));
+		}	
+		if (n == 0)
+			return -1;
+		if (n < sizeof(struct autofs_packet_hdr))
+			fatal("pipe short read (<hdr)");
+		return 0;
+	}
+	
 	/* read header first (actual length determined by packet type!) */
 	for(p = (char *)pkt; len > 0; ) {
-		size_t n = read(fd, p, len);
+		n = read(fd, p, len);
 		if (n < 0) {
 			if (errno == EINTR)
 				continue;
@@ -221,6 +244,7 @@ static int read_kernel_packet(int fd, union autofs_packet_union *pkt)
 		p += n;
 		len -= n;
 	}
+	
 	switch(pkt->hdr.type) {
 	  case autofs_ptype_missing:
 		len = sizeof(struct autofs_packet_missing); break;
@@ -232,7 +256,7 @@ static int read_kernel_packet(int fd, union autofs_packet_union *pkt)
 		fatal("autofs: unknown packet type %d received from kernel");
 	}
 	len -= sizeof(struct autofs_packet_hdr);
-	
+
 	while(len > 0) {
 		size_t n = read(fd, p, len);
 		if (n < 0) {

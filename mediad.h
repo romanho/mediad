@@ -50,6 +50,10 @@ typedef enum {
 	CCS_FLOPPY,
 } check_change_t;
 
+typedef enum {
+	MOPT_NO_AUTOMOUNT = 1,
+} mntoption_flag_t;
+
 typedef struct _mcond {
 	struct _mcond  *next;
 	matchwhat_t    what;
@@ -63,6 +67,13 @@ typedef struct _fsoptions {
 	unsigned       prio;
 	const char     *options;
 } fsoptions_t;
+
+typedef struct _mntoptions {
+	struct _mntoptions *next;
+	mcond_t        *cond;
+	unsigned       prio;
+	unsigned       options;
+} mntoptions_t;
 
 typedef struct _alias {
 	struct _alias  *next;
@@ -102,6 +113,7 @@ typedef struct _mnt {
 	unsigned        medium_changed : 1;
 	unsigned        mounted : 1;
 	unsigned        suppress_message : 1;
+	unsigned        no_automount : 1;
 	check_change_t  check_change_strategy;
 	int             check_change_param;
 } mnt_t;
@@ -141,6 +153,7 @@ typedef struct _mntent_list {
 extern pthread_attr_t thread_detached;
 extern sigset_t termsigs;
 extern int volatile shutting_down;
+extern int used_sigs[];
 int do_mount(const char *name);
 int do_umount(const char *name);
 int daemon_main(void);
@@ -174,6 +187,9 @@ void add_fsoptions(mcond_t *cond, const char *opts);
 const char *find_fsoptions(mnt_t *m);
 void purge_fsoptions(void);
 void parse_mount_options(const char *_opts, int *iopts, const char **sopts);
+void add_mntoptions(mcond_t *cond, unsigned options);
+unsigned find_mntoptions(mnt_t *m);
+void purge_mntoptions(void);
 
 /* aliases.c */
 void add_alias(mcond_t *cond, const char *alias);
@@ -216,5 +232,6 @@ void send_num(int fd, unsigned num);
 void send_str(int fd, const char *str);
 unsigned recv_num(int fd);
 void recv_str(int fd, const char **p);
+unsigned int linux_version_code(void);
 
 #endif /* MEDIAD_H */

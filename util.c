@@ -34,8 +34,10 @@
 #include <sys/mount.h>
 #include <sys/wait.h>
 #include <sys/sysmacros.h>
+#include <sys/utsname.h>
 #include <netinet/in.h>
 #include <libvolume_id.h>
+#include <linux/version.h>
 #include "mediad.h"
 
 
@@ -157,8 +159,10 @@ void run_vol_id(mnt_t *m)
 		set_no_medium_present(m);
 		return;
 	}	
-	if (!(vid = volume_id_open_fd(fd)))
+	if (!(vid = volume_id_open_fd(fd))) {
+		close(fd);
 		return;
+	}
 	if (ioctl(fd, BLKGETSIZE64, &size) != 0)
 		size = 0;
 
@@ -178,6 +182,7 @@ void run_vol_id(mnt_t *m)
 			m->uuid = xstrdup(p);
 	}
 	volume_id_close(vid);
+	close(fd);
 }
 
 
@@ -203,12 +208,12 @@ static int find_dev(const char *name, const struct stat *st,
 	fclose(f);
 	
 	if (ma == find_maj && mi == find_min) {
+		char path[PATH_MAX];
+		getcwd(path, sizeof(path));
 		/* strdup the dir name where the dev file was found, without the /sys
 		 * prefix to be consistent with what udev passes to us */
-		int l = strlen(name)-8;
-		found_path = xmalloc(l);
-		strncpy(found_path, name+4, l);
-		found_path[l] = '\0';
+		found_path = xmalloc(strlen(path)-4+1);
+		strcpy(found_path, path+4);
 		return 1;
 	}
 	return 0;
@@ -226,7 +231,7 @@ void find_devpath(mnt_t *m)
 	find_min = minor(st.st_rdev);
 
 	found_path = NULL;
-	nftw("/sys/block", find_dev, 10, FTW_MOUNT|FTW_PHYS);
+	nftw("/sys/block", find_dev, 10, FTW_MOUNT|FTW_CHDIR);
 
 	m->devpath = found_path;
 	debug("found devpath=%s for %s by searching /sys/block",
@@ -292,4 +297,33 @@ void recv_str(int fd, const char **p)
 	*p = xmalloc(len);
 	if (read(fd, (char*)*p, len) != len)
 		fatal("read from cmd socket: %s", strerror(errno));
+}
+
+unsigned int linux_version_code(void)
+{
+	struct utsname my_utsname;
+	unsigned int p, q, r;
+	char *tmp, *save;
+
+	if (uname(&my_utsname))
+		return 0;
+
+	p = q = r = 0;
+
+	tmp = strtok_r(my_utsname.release, ".", &save);
+	if (!tmp)
+		return 0;
+	p = (unsigned int ) atoi(tmp);
+
+	tmp = strtok_r(NULL, ".", &save);
+	if (!tmp)
+		return KERNEL_VERSION(p, 0, 0);
+	q = (unsigned int) atoi(tmp);
+
+	tmp = strtok_r(NULL, ".", &save);
+	if (!tmp)
+		return KERNEL_VERSION(p, q, 0);
+	r = (unsigned int) atoi(tmp);
+
+	return KERNEL_VERSION(p, q, r);
 }

@@ -172,7 +172,7 @@ int call_mount(const char *dev, const char *path,
 	}
 
 	if ((helper = find_mount_helper(type))) {
-		int pid, status;
+		pid_t pid;
 
 		debug("calling mount helper %s %s %s -o %s", helper, dev, path, options);
 		if ((pid = fork()) < 0) {
@@ -181,6 +181,10 @@ int call_mount(const char *dev, const char *path,
 			return -1;
 		}
 		if (pid == 0) {
+			int i = 0;
+			while(used_sigs[i])
+				signal(used_sigs[i++], SIG_DFL);
+			
 			close(0);
 			open("/dev/null", O_RDONLY);
 			close(1);
@@ -192,6 +196,7 @@ int call_mount(const char *dev, const char *path,
 			exit(127);
 		}
 		else {
+			int status = 0;
 			waitpid(pid, &status, 0);
 			debug("helper returned status %d", status);
 			if (status == 0)
@@ -204,12 +209,14 @@ int call_mount(const char *dev, const char *path,
 		parse_mount_options(options, &iopts, &sopts);
 		if (mount(dev, path, type, iopts, sopts) == 0) {
 			free((char*)sopts);
+			add_mtab(dev, path, type, options);
 			return 0;
 		}
 		if (errno == EROFS) {
 			iopts |= MS_RDONLY;
 			if (mount(dev, path, type, iopts, sopts) == 0) {
 				free((char*)sopts);
+				add_mtab(dev, path, type, options);
 				return 1;
 			}
 		}

@@ -64,7 +64,7 @@ static int by_dev(mnt_t *m, const void *arg)
 }
 static int by_devpath(mnt_t *m, const void *arg)
 {
-	return strcmp(m->devpath, (const char*)arg) == 0;
+	return m->devpath ? strcmp(m->devpath, (const char*)arg) == 0 : 0;
 }
 static int by_ptr(mnt_t *m, const void *arg)
 {
@@ -86,23 +86,20 @@ static mnt_t *get_mount(int (*func)(mnt_t*, const void*),
 				break;
 		}
 		if (!m) {
-		        if(!retw_mounts_lock)
-			  pthread_mutex_unlock(&mounts_lock);
-
+			if (!retw_mounts_lock)
+				pthread_mutex_unlock(&mounts_lock);
 			return NULL;
 		}
 
 		if (pthread_mutex_trylock(&m->lock) == 0) {
-		        if(!retw_mounts_lock)
-			  pthread_mutex_unlock(&mounts_lock);
-
+			if (!retw_mounts_lock)
+				pthread_mutex_unlock(&mounts_lock);
 			return m;
 		}
 
-		if (tries && try >= tries){
-		        if(!retw_mounts_lock)
-			  pthread_mutex_unlock(&mounts_lock); 
-
+		if (tries && try >= tries) {
+			if (!retw_mounts_lock)
+				pthread_mutex_unlock(&mounts_lock); 
 			return NULL;
 		}
 
@@ -165,7 +162,6 @@ int do_mount(const char *name)
 	}
 	
 	m->mounted = 1;
-	add_mtab(m->dev, path, m->type, options);
 	debug("mounted %s on %s (type %s%s)",
 		  m->dev, path, m->type, forced_ro ? ", forced read-only" : "");
 	pthread_mutex_unlock(&m->lock);
@@ -185,6 +181,10 @@ int do_umount(const char *name)
 		debug("%s already unmounted by another thread", name);
 		pthread_mutex_unlock(&m->lock);
 		return 0;
+	}
+	if (m->no_automount) {
+		pthread_mutex_unlock(&m->lock);
+		return -1;
 	}
 	
 	mkpath(path, name);
@@ -336,6 +336,7 @@ static void add_mount(const char *dev, const char *perm_alias,
 	mnt_t *m;
 	unsigned i, mpres;
 	char *msgbuf;
+	unsigned options;
 
 	debug("add request for %s", dev);
 	/* try to re-read config file if it has changed */
@@ -382,6 +383,10 @@ static void add_mount(const char *dev, const char *perm_alias,
 	mnt_add_uuid_alias(m, 0);
 	match_aliases(m, 0, 0);
 
+	options = find_mntoptions(m);
+	if (options & MOPT_NO_AUTOMOUNT)
+		m->no_automount = 1;
+
 	msgbuf = alloca((m->vendor ? strlen(m->vendor) : 0) +
 					(m->model ? strlen(m->model) : 0) +
 					(m->type ? strlen(m->type) : 0) +
@@ -418,6 +423,9 @@ static void add_mount(const char *dev, const char *perm_alias,
 	mk_dir(m);
 	mk_aliases(m, m->type ? WAT_ALL : WAT_NONSPEC);
 	pthread_mutex_unlock(&m->lock);
+
+	if (m->no_automount)
+		do_mount(dev_to_dir(dev));
 }
 
 static void rm_mount(const char *dev)
@@ -601,11 +609,13 @@ static void do_shutdown(int signr)
 	exit(0);
 }
 
+int used_sigs[] = { SIGHUP, SIGCHLD, SIGINT, SIGQUIT, SIGTERM, 0 };
+
 int daemon_main(void)
 {
 	int listen_fd;
 	
-	openlog("mediad", LOG_NDELAY|LOG_PID, LOG_DAEMON);
+	openlog("mediad", LOG_NDELAY|LOG_PID|LOG_CONS, LOG_DAEMON);
 	setpgrp();
 	chdir("/");
 	sigemptyset(&termsigs);

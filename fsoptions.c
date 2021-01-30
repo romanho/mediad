@@ -32,7 +32,9 @@
 
 
 fsoptions_t *fsoptions = NULL;
+mntoptions_t *mntoptions = NULL;
 static pthread_mutex_t fsoptions_lock = PTHREAD_MUTEX_INITIALIZER;
+static pthread_mutex_t mntoptions_lock = PTHREAD_MUTEX_INITIALIZER;
 
 
 static char *filter_options(const char *_opts)
@@ -170,3 +172,52 @@ void parse_mount_options(const char *_opts, int *iopts, const char **sopts)
 	}
 	*sopts = xstrdup(_sopts);
 }
+
+
+void add_mntoptions(mcond_t *cond, unsigned options)
+{
+	mntoptions_t *o = xmalloc(sizeof(mntoptions_t)), **oo;
+
+	o->cond = cond;
+	o->prio = mcond_prio(cond);
+	o->options = options;
+
+	pthread_mutex_lock(&mntoptions_lock);
+	/* keep sorted by prio, append at end within same level */
+	for(oo = &mntoptions; *oo; oo = &(*oo)->next)
+		if ((*oo)->prio > o->prio)
+			break;
+	o->next = *oo;
+	*oo = o;
+	pthread_mutex_unlock(&mntoptions_lock);
+}
+
+unsigned find_mntoptions(mnt_t *m)
+{
+	mntoptions_t *o;
+	unsigned options = 0;
+
+	pthread_mutex_lock(&mntoptions_lock);
+	for(o = mntoptions; o; o = o->next) {
+		if (match_mcond(o->cond, m, NULL))
+			options |= o->options;
+	}
+	pthread_mutex_unlock(&mntoptions_lock);
+	return options;
+}
+
+void purge_mntoptions(void)
+{
+	mntoptions_t **oo;
+
+	pthread_mutex_lock(&mntoptions_lock);
+	oo = &mntoptions;
+	while(*oo) {
+		mntoptions_t *o = *oo;
+		*oo = o->next;
+		free_mcond(o->cond);
+		free(o);
+	}
+	pthread_mutex_unlock(&mntoptions_lock);
+}
+
