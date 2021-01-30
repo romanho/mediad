@@ -54,15 +54,62 @@ static mnt_t *mounts = NULL;
 static pthread_mutex_t mounts_lock = PTHREAD_MUTEX_INITIALIZER;
 static pthread_mutexattr_t rec_mutex;
 
-static mnt_t *find_mount(const char *name)
+static int by_dirname(mnt_t *m, const void *arg)
+{
+	return strcmp(m->dir, (const char*)arg) == 0;
+}
+static int by_dev(mnt_t *m, const void *arg)
+{
+	return strcmp(m->dev, (const char*)arg) == 0;
+}
+static int by_devpath(mnt_t *m, const void *arg)
+{
+	return strcmp(m->devpath, (const char*)arg) == 0;
+}
+static int by_ptr(mnt_t *m, const void *arg)
+{
+	return m == (const mnt_t*)arg;
+}
+
+static mnt_t *get_mount(int (*func)(mnt_t*, const void*),
+						const void *arg, int retw_mounts_lock, unsigned tries)
 {
 	mnt_t *m;
-	
-	for(m = mounts; m; m = m->next) {
-		if (strcmp(name, m->dir) == 0)
+	unsigned try;
+
+	for(try = 0; ; ++try) {
+	  
+		pthread_mutex_lock(&mounts_lock);
+
+		for(m = mounts; m; m = m->next) {
+			if (func(m, arg))
+				break;
+		}
+		if (!m) {
+		        if(!retw_mounts_lock)
+			  pthread_mutex_unlock(&mounts_lock);
+
+			return NULL;
+		}
+
+		if (pthread_mutex_trylock(&m->lock) == 0) {
+		        if(!retw_mounts_lock)
+			  pthread_mutex_unlock(&mounts_lock);
+
 			return m;
+		}
+
+		if (tries && try >= tries){
+		        if(!retw_mounts_lock)
+			  pthread_mutex_unlock(&mounts_lock); 
+
+			return NULL;
+		}
+
+		pthread_mutex_unlock(&mounts_lock);
+
+		usleep(tries ? 500000 : 50000);
 	}
-	return NULL;
 }
 
 int do_mount(const char *name)
@@ -72,17 +119,11 @@ int do_mount(const char *name)
 	const char *options;
 	char path[strlen(autodir)+strlen(name)+2];
 
-	pthread_mutex_lock(&mounts_lock);
-	if (!(m = find_mount(name))) {
-		debug("%s not found", name);
-		pthread_mutex_unlock(&mounts_lock);
+	if (!(m = get_mount(by_dirname, name, 0, 0)))
 		return -1;
-	}
-	pthread_mutex_lock(&m->lock);
-	pthread_mutex_unlock(&mounts_lock);
 
 	if (m->mounted) {
-		debug("%s already mounted by another thread");
+		debug("%s already mounted by another thread", name);
 		pthread_mutex_unlock(&m->lock);
 		return 0;
 	}
@@ -111,6 +152,7 @@ int do_mount(const char *name)
 	  default:
 		if (no_medium_errno()) {
 			set_no_medium_present(m);
+			// XXX soll nicht no_medium() die Aliasse verwalten?
 			if (m->parent) {
 				rm_aliases(m, WAT_FSSPEC);
 				mnt_free_aliases(m, AF_FSSPEC, AF_FSSPEC);
@@ -137,16 +179,10 @@ int do_umount(const char *name)
 	int err;
 	char path[strlen(autodir)+strlen(name)+2];
 
-	pthread_mutex_lock(&mounts_lock);
-	if (!(m = find_mount(name))) {
-		pthread_mutex_unlock(&mounts_lock);
+	if (!(m = get_mount(by_dirname, name, 0, 0)))
 		return -1;
-	}
-	pthread_mutex_lock(&m->lock);
-	pthread_mutex_unlock(&mounts_lock);
-
 	if (!m->mounted) {
-		debug("%s already unmounted by another thread");
+		debug("%s already unmounted by another thread", name);
 		pthread_mutex_unlock(&m->lock);
 		return 0;
 	}
@@ -188,7 +224,7 @@ static void add_child(mnt_t *p, mnt_t *m)
 	strcpy(linkto, "../");
 	strcat(linkto, m->dir);
 	if (symlink(linkto, path))
-		error("symlink(%s,%s): %s", linkto, path);
+		error("symlink(%s,%s): %s", linkto, path, strerror(errno));
 	
 	m->parent = p;
 	p->n_children++;
@@ -241,22 +277,11 @@ static void check_parent(mnt_t *m)
 		return;
 	*p = '\0';
 
-	/* now find that parent name */
-	pthread_mutex_lock(&mounts_lock);
-	p = fname + 4;
-	for(par = mounts; par; par = par->next) {
-		if (strcmp(par->devpath, p) == 0)
-			break;
-	}
-	if (!par) {
-		warning("parent device (devpath=%s) for %s not found!",
-				p, m->dev);
-		pthread_mutex_unlock(&mounts_lock);
+	if (!(par = get_mount(by_devpath, fname+4, 0, 6))) {
+		warning("parent device (devpath=%s) for %s not found!", fname+4, m->dev);
 		return;
 	}
 
-	pthread_mutex_lock(&par->lock);
-	pthread_mutex_unlock(&mounts_lock);
 	m->partition = pnum;
 	add_child(par, m);
 	pthread_mutex_unlock(&par->lock);
@@ -284,25 +309,21 @@ static void *delayed_message(void *mnt)
 
 	sleep(1);
 
-	/* check that mnt still exists */
-	pthread_mutex_lock(&mounts_lock);
-	for(m = mounts; m; m = m->next) {
-		if (m == (mnt_t*)mnt) {
-			pthread_mutex_lock(&m->lock);
-			break;
-		}
-	}
-	pthread_mutex_unlock(&mounts_lock);
-	if (!m)
+	if (!(m = get_mount(by_ptr, mnt, 0, 0)))
 		/* mount has disappeared... */
-		goto out;
+		return NULL;
+	
 	if (m->n_children) {
 		/* children have appeared, message should be suppressed */
 		m->suppress_message = 1;
+		if (m->serial)
+			lpmsg("new %s available (serial number is %s)", m->dir, m->serial);
 		goto out;
 	}
 	/* still exists and no children -> print message */
 	msg("new %s/%s available (no filesystem)", autodir, m->dir);
+	if (!m->parent && m->serial)
+		lpmsg("(serial number is %s)", m->serial);
 
   out:
 	pthread_mutex_unlock(&m->lock);
@@ -320,15 +341,8 @@ static void add_mount(const char *dev, const char *perm_alias,
 	/* try to re-read config file if it has changed */
 	read_config();
 	
-	pthread_mutex_lock(&mounts_lock);
-	for(m = mounts; m; m = m->next) {
-		if (strcmp(dev, m->dev) == 0)
-			break;
-	}
-	if (m) {
+	if ((m = get_mount(by_dev, dev, 1, 0))) {
 		debug("device %s already existed, replacing it", dev);
-		pthread_mutex_lock(&m->lock);
-		pthread_mutex_unlock(&mounts_lock);
 		/* unchanged: dev, devpath, dir */
 		rm_aliases(m, WAT_ALL);
 		mnt_free_aliases(m, AF_PERM, 0);
@@ -345,8 +359,8 @@ static void add_mount(const char *dev, const char *perm_alias,
 
 		m->next = mounts;
 		mounts  = m;
-		pthread_mutex_unlock(&mounts_lock);
 	}
+	pthread_mutex_unlock(&mounts_lock);
 
 	for(i = 0; i < n; ++i)
 		parse_id(m, ids[i]);
@@ -363,16 +377,10 @@ static void add_mount(const char *dev, const char *perm_alias,
 	/* add permanent alias only if different from mountpoint */
 	if (perm_alias && perm_alias[0] && strcmp(perm_alias, m->dir) != 0)
 		mnt_add_alias(m, perm_alias, AF_PERM);
-	if (!config.no_model_alias && m->model && m->model[0]) {
-		char *mod = xmalloc(strlen(m->model)+3);
-		strcpy(mod, m->model);
-		strcat(mod, "%P");
-		mnt_add_alias(m, mod, 0);
-		free(mod);
-	}
-	if (!config.no_label_alias)
-		mnt_add_alias(m, m->label, AF_FSSPEC);
-	match_aliases(m, 0);
+	mnt_add_model_alias(m);
+	mnt_add_label_alias(m, 0);
+	mnt_add_uuid_alias(m, 0);
+	match_aliases(m, 0, 0);
 
 	msgbuf = alloca((m->vendor ? strlen(m->vendor) : 0) +
 					(m->model ? strlen(m->model) : 0) +
@@ -402,8 +410,11 @@ static void add_mount(const char *dev, const char *perm_alias,
 		pthread_create(&newthread, &thread_detached,
 					   delayed_message, m);
 	}
-	else
+	else {
 		msg("new %s/%s available (%s)", autodir, m->dir, msgbuf);
+		if (!m->parent && m->serial)
+			lpmsg("(serial number is %s)", m->serial);
+	}
 	mk_dir(m);
 	mk_aliases(m, m->type ? WAT_ALL : WAT_NONSPEC);
 	pthread_mutex_unlock(&m->lock);
@@ -413,9 +424,11 @@ static void rm_mount(const char *dev)
 {
 	mnt_t *m, **mm;
 	char path[PATH_MAX], *mpnt;
+	int try = 6;
 
 	debug("remove request for %s", dev);
-	
+
+  again:
 	pthread_mutex_lock(&mounts_lock);
 	for(mm = &mounts; *mm; mm = &(*mm)->next) {
 		if (strcmp(dev, (*mm)->dev) == 0)
@@ -426,7 +439,23 @@ static void rm_mount(const char *dev)
 		pthread_mutex_unlock(&mounts_lock);
 		return;
 	}
-	pthread_mutex_lock(&m->lock);
+	if (pthread_mutex_trylock(&m->lock)) {
+		debug("trylock13 %x %s failed", &m->lock, m->dev);
+		pthread_mutex_unlock(&mounts_lock);
+		usleep(50000);
+		goto again;
+	}	
+	if (m->n_children) {
+		debug("%s is Parent and has %d children! sleep 1 second; %d tries",
+			  dev, m->n_children, 6-try);
+		pthread_mutex_unlock(&m->lock);
+		pthread_mutex_unlock(&mounts_lock);
+		usleep(500000);
+		if (try--)
+			goto again;
+		else
+			return;
+	}
 	*mm = m->next;
 	pthread_mutex_unlock(&mounts_lock);
 
@@ -441,9 +470,15 @@ static void rm_mount(const char *dev)
 	else if (errno != EINVAL && errno != ENOENT)
 		warning("umount(%s): %s", path, strerror(errno));
 
+  again2:
 	if (m->parent) {
 		mnt_t *p = m->parent;
-		pthread_mutex_lock(&p->lock);
+
+		if (pthread_mutex_trylock(&p->lock)) {
+			debug("trylock15 %x failed", &p->lock);
+			usleep(50000);
+			goto again2;
+		}
 		rm_child(p, m);
 		pthread_mutex_unlock(&p->lock);
 	}
@@ -455,6 +490,9 @@ static void rm_mount(const char *dev)
 	free((char*)m->dev);
 	xfree(&m->devpath);
 	free((char*)m->dir);
+	xfree(&m->label);
+	xfree(&m->type);
+	xfree(&m->uuid);
 	mnt_free_aliases(m, 0, 0);
 	pthread_mutex_destroy(&m->lock);
 	free(m);
@@ -580,7 +618,7 @@ int daemon_main(void)
 	listen_fd = open_socket();
 	start_automount(autodir);
 	signal(SIGHUP, SIG_IGN);
-	signal(SIGCHLD, SIG_DFL);
+	signal(SIGCHLD, SIG_IGN);
 	signal(SIGINT, do_shutdown);
 	signal(SIGQUIT, do_shutdown);
 	signal(SIGTERM, do_shutdown);

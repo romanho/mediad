@@ -30,7 +30,7 @@
 
 
 config_t config;
-#define FORCE_DEBUG 1
+#define FORCE_DEBUG 0
 
 static time_t config_mtime = 0;
 static const char *parse_error, *parse_error_arg;
@@ -277,6 +277,16 @@ static void parse_line(int lno, char *line)
 			goto parse_err;
 		config.no_label_alias = !n;
 	}
+	else if (strcmp(w, "label-unique") == 0) {
+		if (getassign(&p) || (n = getbool(&p)) < 0)
+			goto parse_err;
+		config.no_label_unique = !n;
+	}
+	else if (strcmp(w, "uuid-alias") == 0) {
+		if (getassign(&p) || (n = getbool(&p)) < 0)
+			goto parse_err;
+		config.uuid_alias = n;
+	}
 	else if (strcmp(w, "hide-device-name") == 0) {
 		if (getassign(&p) || (n = getbool(&p)) < 0)
 			goto parse_err;
@@ -352,7 +362,7 @@ static void parse_line(int lno, char *line)
 static void purge_config(void)
 {
 	config = (config_t){ DEF_AUTOFS_EXP_FREQ, DEF_AUTOFS_TIMEOUT,
-						 0, 0, 0, 0, 0, 0 };
+						 0, 0, 0, 0, 0, 0, 0, 0 };
 	purge_fsoptions();
 	purge_aliases();
 	purge_fstype_replace();

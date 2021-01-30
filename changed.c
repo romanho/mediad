@@ -115,20 +115,23 @@ static int check_changed(mnt_t *m)
 	close(fd);
 	if (rv < 0)
 		rv = 1;
+
 	return rv;
 }
 
 static void remake_fsspec_aliases(mnt_t *m)
 {
-	rm_aliases(m, WAT_FSSPEC);
-	mnt_free_aliases(m, AF_FSSPEC, AF_FSSPEC);
+	mark_aliases(m, AF_FSSPEC, AF_FSSPEC, AF_OLD);
+
 	run_vol_id(m);
 	if (m->type) {
-		if (!config.no_label_alias)
-			mnt_add_alias(m, m->label, AF_FSSPEC);
-		match_aliases(m, 1);
-		mk_aliases(m, WAT_FSSPEC);
+		mnt_add_label_alias(m, AF_OLD);
+		mnt_add_uuid_alias(m, AF_OLD);
+		match_aliases(m, 1, AF_OLD);
 	}
+	
+	mk_aliases(m, WAT_FSSPEC);
+	mnt_free_aliases(m, AF_OLD, AF_OLD);
 }
 
 void check_medium_change(mnt_t *m)

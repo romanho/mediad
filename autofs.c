@@ -74,7 +74,7 @@ static void *blinker(void *dummy)
 
 	if ((ttyfd = open("/dev/tty0", O_RDONLY)) < 0) {
 		error("/dev/tty: %s", strerror(errno));
-		return;
+		return NULL;
 	}
 	debug("blinker thread started");
 
@@ -108,6 +108,7 @@ static void *blinker(void *dummy)
 	close(ttyfd);
 	blinker_thread = 0;
 	pthread_mutex_unlock(&blink_lock);
+	return NULL;
 }
 
 

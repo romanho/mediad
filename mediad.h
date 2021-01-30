@@ -73,12 +73,14 @@ typedef struct _alias {
 typedef struct _alist {
 	struct _alist  *next;
 	const char     *name;
+	const char     *created;
 	unsigned       flags;
 } alist_t;
 
 /* alist flags: */
 #define AF_FSSPEC 1
 #define AF_PERM   2
+#define AF_OLD    4
 
 typedef struct _mnt {
 	struct _mnt     *next;
@@ -108,10 +110,12 @@ typedef struct _config {
 	unsigned int  expire_freq;
 	unsigned long expire_timeout;
 	unsigned char blink_led;
-	unsigned debug : 1;
-	unsigned no_scan_fstab : 1;
-	unsigned no_model_alias : 1;
-	unsigned no_label_alias : 1;
+	unsigned debug            : 1;
+	unsigned no_scan_fstab    : 1;
+	unsigned no_model_alias   : 1;
+	unsigned no_label_alias   : 1;
+	unsigned no_label_unique  : 1;
+	unsigned uuid_alias       : 1;
 	unsigned hide_device_name : 1;
 } config_t;
 
@@ -126,6 +130,7 @@ typedef struct _mntent_list {
 #define warning(str,args...)	do { logit(LOG_WARNING, str, ## args); } while(0)
 /* make them a higher level to make them visible in a console window... */
 #define msg(str,args...)		do { logit(LOG_WARNING, str, ## args); } while(0)
+#define lpmsg(str,args...)		do { logit(LOG_INFO, str, ## args); } while(0)
 #define debug(str,args...)											\
 	do {															\
 		if (config.debug)											\
@@ -173,11 +178,15 @@ void parse_mount_options(const char *_opts, int *iopts, const char **sopts);
 /* aliases.c */
 void add_alias(mcond_t *cond, const char *alias);
 void purge_aliases(void);
-void match_aliases(mnt_t *m, int fsspec_only);
+void match_aliases(mnt_t *m, int fsspec_only, unsigned flags);
+void mark_aliases(mnt_t *m, unsigned mask, unsigned flags, unsigned newflags);
 void mnt_add_alias(mnt_t *m, const char *a, unsigned flags);
 void mnt_free_aliases(mnt_t *m, unsigned mask, unsigned flags);
 void mk_aliases(mnt_t *m, whatalias_t fsspec);
 void rm_aliases(mnt_t *m, whatalias_t fsspec);
+void mnt_add_model_alias(mnt_t *m);
+void mnt_add_label_alias(mnt_t *m, unsigned flags);
+void mnt_add_uuid_alias(mnt_t *m, unsigned flags);
 
 /* mcond.c */
 mcond_t *new_mcond(matchwhat_t what, matchop_t op, const char *value);

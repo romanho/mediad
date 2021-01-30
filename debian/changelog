@@ -1,3 +1,23 @@
+mediad (0.7) unstable; urgency=low
+
+  * If parent device (e.g., sda) of a partition (sda1) arrives later, the
+    model alias pointed to the partition (instead the device) and there
+    was an error message. Now mediad waits max. 3s for the expected parent
+    to trigger an event, too.
+  * Avoid some races between threads.
+  * Alias maintenance was reorganized. If, for example, two filesystems
+    have the same name, the symlink isn't removed anymore with the wrong
+    device. Also, symlinks can be made unique by inserting '#<n>' into the
+    name. This is default for model names, and optional for labels.
+  * mediad can also create UUID aliases, but this is not on by default.
+  * The serial number of a device is logged, for convenience when
+    you want to add the device to mediad.conf with a serial=="..." statement.
+  * If a medium change is detected, symlinks are not removed and
+    device, if this is not necessary.
+  * New config options: label-unique, uuid-alias.
+
+ -- Roman Hodek <roman@hodek.net>  Tue, 09 Jun 2009 18:58:05 +0200
+
 mediad (0.6) unstable; urgency=low
 
   * Use "mount.$FSTYPE" helper binaries for filesystem where such a helper is

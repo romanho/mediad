@@ -116,7 +116,7 @@ void parse_id(mnt_t *m, const char *line)
 	Iget("ID_SERIAL",			serial);
 	Iget("ID_FS_TYPE",			type);
 	Iget("ID_FS_UUID",			uuid);
-	Iget("ID_FS_LABEL_SAFE",	label);
+	Iget("ID_FS_LABEL",			label);
 }
 
 static void vid_log(int priority, const char *file, int line, const char *format, ...)
@@ -124,7 +124,7 @@ static void vid_log(int priority, const char *file, int line, const char *format
 	char log_str[1024];
 	va_list args;
 
-	if (!config.debug && priority >= LOG_INFO)
+//	if (!config.debug && priority >= LOG_INFO)
 		return;
 	
 	va_start(args, format);
@@ -145,32 +145,37 @@ static void replace_untrusted_chars(char *p)
 
 void run_vol_id(mnt_t *m)
 {
+	int fd;
 	struct volume_id *vid = NULL;
 	uint64_t size;
+	const char *p;
 
 	debug("calling volume_id for %s", m->dev);
 	volume_id_log_fn = vid_log;
 
-	if (!(vid = volume_id_open_node(m->dev))) {
+	if ((fd = open(m->dev, O_RDONLY)) < 0) {
 		set_no_medium_present(m);
 		return;
-	}
-	if (ioctl(vid->fd, BLKGETSIZE64, &size) != 0)
+	}	
+	if (!(vid = volume_id_open_fd(fd)))
+		return;
+	if (ioctl(fd, BLKGETSIZE64, &size) != 0)
 		size = 0;
 
 	xfree(&m->type);
 	xfree(&m->uuid);
 	xfree(&m->label);
-	if (!volume_id_probe_filesystem(vid, 0, size)) {
-		if (vid->type)
-			m->type = xstrdup(vid->type);
-		if (vid->uuid[0])
-			m->uuid = xstrdup(vid->uuid);
-		if (vid->label[0]) {
-			char *label = xstrdup(vid->label);
+
+	if (volume_id_probe_filesystem(vid, 0, size) == 0) {
+		if (volume_id_get_label(vid, &p)) {
+			char *label = xstrdup(p);
 			replace_untrusted_chars(label);
 			m->label = label;
 		}
+		if (volume_id_get_type(vid, &p))
+			m->type = xstrdup(p);
+		if (volume_id_get_uuid(vid, &p))
+			m->uuid = xstrdup(p);
 	}
 	volume_id_close(vid);
 }
