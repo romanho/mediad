@@ -10,7 +10,6 @@
 #define CONFIGFILE			"/etc/mediad/mediad.conf"
 #define SOCKNAME			"/dev/.mediad"
 #define SOCKLOCK			"/dev/.mediad.lock"
-#define VOL_ID_PATH			"/sbin/vol_id"
 #define ETC_FSTAB			"/etc/fstab"
 #define ETC_MTAB			"/etc/mtab"
 
@@ -225,7 +224,7 @@ char *mkpath(char *buf, const char *add);
 const char *getid(unsigned n, const char **ids, const char *what);
 void parse_id(mnt_t *m, const char *line);
 void replace_untrusted_chars(char *p);
-void run_vol_id(mnt_t *m);
+void get_dev_infos(mnt_t *m);
 void find_devpath(mnt_t *m);
 void mk_dir(mnt_t *m);
 void rm_dir(mnt_t *m);

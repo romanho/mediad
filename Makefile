@@ -2,7 +2,7 @@ CC      = gcc
 CFLAGS  = -O2 -Wall
 LD      = gcc
 LDFLAGS =
-LIBS    = -lblkid -lpthread
+LIBS    = -ludev -lpthread
 
 OBJS = main.o daemon.o autofs.o changed.o config.o \
 	   mount.o fsoptions.o aliases.o mcond.o mtab.o util.o

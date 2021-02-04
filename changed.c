@@ -123,7 +123,7 @@ static void remake_fsspec_aliases(mnt_t *m)
 {
 	mark_aliases(m, AF_FSSPEC, AF_FSSPEC, AF_OLD);
 
-	run_vol_id(m);
+	get_dev_infos(m);
 	if (m->type) {
 		mnt_add_label_alias(m, AF_OLD);
 		mnt_add_uuid_alias(m, AF_OLD);

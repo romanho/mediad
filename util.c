@@ -36,7 +36,7 @@
 #include <sys/sysmacros.h>
 #include <sys/utsname.h>
 #include <netinet/in.h>
-#include <blkid/blkid.h>
+#include <libudev.h>
 #include <linux/version.h>
 #include "mediad.h"
 
@@ -120,6 +120,7 @@ void parse_id(mnt_t *m, const char *line)
 	Iget("ID_FS_UUID",			uuid);
 	Iget("ID_FS_LABEL",			label);
 }
+
 void replace_untrusted_chars(char *p)
 {
 	for(; *p; ++p) {
@@ -128,39 +129,39 @@ void replace_untrusted_chars(char *p)
 	}
 }
 
-void run_vol_id(mnt_t *m)
+void get_dev_infos(mnt_t *m)
 {
-	blkid_probe pr;
-	const char *p;
-	size_t len;
-
-	debug("calling blkid for %s", m->dev);
-	if (!(pr = blkid_new_probe_from_filename(m->dev))) {
-		//error("%s: failed to open for blkid", m->dev);
+	struct udev *udev;
+	struct udev_device *dev;
+	struct udev_list_entry *list_entry;
+	char sdevpath[strlen(m->devpath)+5];
+	sprintf(sdevpath, "/sys/%s", m->devpath);
+	
+	if (!(udev = udev_new())) {
+		error("failed to create udev context");
 		return;
 	}
-
-	blkid_probe_set_partitions_flags(pr, BLKID_PARTS_ENTRY_DETAILS);
-	blkid_probe_enable_superblocks(pr, 1);
-	if (blkid_do_safeprobe(pr) < 0)
-		//error();
+	if (!(dev = udev_device_new_from_syspath(udev, sdevpath))) {
+		error("%s: failed to get udev object", m->dev);
 		goto out;
-
-	xfree(&m->type);
-	xfree(&m->uuid);
-	xfree(&m->label);
-
-	if (blkid_probe_lookup_value(pr, "LABEL", &p, &len) == 0) {
-		char *label = xstrdup(p);
-		replace_untrusted_chars(label);
-		m->label = label;
 	}
-	if (blkid_probe_lookup_value(pr, "TYPE", &p, &len) == 0)
-		m->type = xstrdup(p);
-	if (blkid_probe_lookup_value(pr, "UUID", &p, &len) == 0)
-		m->uuid = xstrdup(p);
+
+	list_entry = udev_device_get_properties_list_entry(dev);
+	while(list_entry) {
+		const char *pnam = udev_list_entry_get_name(list_entry);
+		const char *pval = udev_list_entry_get_value(list_entry);
+		if (pnam && pval && strcmp(pnam, "DEVPATH") != 0) {
+			char buf[strlen(pnam)+strlen(pval)+2];
+			sprintf(buf, "%s=%s", pnam, pval);
+			replace_untrusted_chars(buf);
+			parse_id(m, buf);
+		}
+		list_entry = udev_list_entry_get_next(list_entry);
+	}
+
+	udev_device_unref(dev);
   out:
-	blkid_free_probe(pr);
+	udev_unref(udev);
 }
 
 static __thread unsigned find_maj, find_min;

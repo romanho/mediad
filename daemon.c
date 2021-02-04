@@ -373,7 +373,7 @@ static void add_mount(const char *dev, const char *perm_alias,
 	mpres = m->parent ? m->parent->medium_present:m->medium_present;
 	if (mpres && !m->type)
 		/* if no FS_TYPE passed but there is a medium, run vol_id ourselves */
-		run_vol_id(m);
+		get_dev_infos(m);
 
 	/* add permanent alias only if different from mountpoint */
 	if (perm_alias && perm_alias[0] && strcmp(perm_alias, m->dir) != 0)
