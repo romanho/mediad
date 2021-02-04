@@ -2,7 +2,7 @@ Source: mediad
 Section: admin
 Priority: optional
 Maintainer: Roman Hodek <roman@hodek.net>
-Build-Depends: debhelper-compat (= 12), libblkid-dev
+Build-Depends: debhelper-compat (= 12), libudev-dev
 Standards-Version: 3.6.2
 
 Package: mediad
