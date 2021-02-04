@@ -155,6 +155,7 @@ extern int volatile shutting_down;
 extern int used_sigs[];
 int do_mount(const char *name);
 int do_umount(const char *name);
+void add_mount_with_devpath(const char *devname, const char *devpath);
 int daemon_main(void);
 
 /* autofs.c */
@@ -170,6 +171,9 @@ int no_medium_errno(void);
 int check_medium(const char *dev);
 void check_medium_change(mnt_t *m);
 void set_no_medium_present(mnt_t *m);
+
+/* coldplug.c */
+void coldplug(void);
 
 /* config.c */
 extern config_t config;

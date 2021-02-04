@@ -567,6 +567,14 @@ static int open_socket(void)
 	return sock;
 }
 
+void add_mount_with_devpath(const char *devname, const char *devpath)
+{
+	char *ids[1];
+	ids[0] = alloca(strlen("DEVPATH=")+strlen(devpath)+1);
+	sprintf(ids[0], "DEVPATH=%s", devpath);
+	add_mount(devname, NULL, 1, ids);
+}
+
 static void *scan_fstab(void *dummy)
 {
 	FILE *f;
@@ -594,6 +602,9 @@ static void *scan_fstab(void *dummy)
 		}
 	}
 	endmntent(f);
+
+	coldplug();
+
 	return NULL;
 }
 
