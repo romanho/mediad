@@ -583,6 +583,7 @@ static void *scan_fstab(void *dummy)
 
 	pthread_sigmask(SIG_BLOCK, &termsigs, NULL);
 
+#if 0
 	if (!(f = setmntent(ETC_FSTAB, "r")))
 		return NULL;
 	while(getmntent_r(f, &m.ent, m.buf, sizeof(m.buf))) {
@@ -591,6 +592,7 @@ static void *scan_fstab(void *dummy)
 			hasmntopt(&m.ent, "noauto")) {
 			debug("found mount %s -> %s with options %s in /etc/fstab",
 				  m.ent.mnt_fsname, m.ent.mnt_dir, m.ent.mnt_opts);
+			// XXX: must handle UUID= or LABEL= mnt_fsname from fstab
 			add_mount(m.ent.mnt_fsname, m.ent.mnt_dir+strlen(autodir)+1, 0, NULL);
 			{
 				mcond_t *c;
@@ -599,6 +601,7 @@ static void *scan_fstab(void *dummy)
 					c->next = new_mcond(MWH_FSTYPE, MOP_EQ, m.ent.mnt_type);
 				add_fsoptions(c, m.ent.mnt_opts);
 			}
+#endif
 		}
 	}
 	endmntent(f);
