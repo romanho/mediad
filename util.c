@@ -131,19 +131,14 @@ void replace_untrusted_chars(char *p)
 
 void get_dev_infos(mnt_t *m)
 {
-	struct udev *udev;
 	struct udev_device *dev;
 	struct udev_list_entry *list_entry;
 	char sdevpath[strlen(m->devpath)+5];
 	sprintf(sdevpath, "/sys/%s", m->devpath);
 	
-	if (!(udev = udev_new())) {
-		error("failed to create udev context");
-		return;
-	}
 	if (!(dev = udev_device_new_from_syspath(udev, sdevpath))) {
 		error("%s: failed to get udev object", m->dev);
-		goto out;
+		return;
 	}
 
 	list_entry = udev_device_get_properties_list_entry(dev);
@@ -160,8 +155,6 @@ void get_dev_infos(mnt_t *m)
 	}
 
 	udev_device_unref(dev);
-  out:
-	udev_unref(udev);
 }
 
 static __thread unsigned find_maj, find_min;

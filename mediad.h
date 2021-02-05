@@ -149,6 +149,7 @@ typedef struct _mntent_list {
 	} while(0)
 
 /* daemon.c */
+extern struct udev *udev;
 extern pthread_attr_t thread_detached;
 extern sigset_t termsigs;
 extern int volatile shutting_down;

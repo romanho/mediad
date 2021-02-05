@@ -39,6 +39,7 @@
 #include <sys/socket.h>
 #include <sys/un.h>
 #include <netinet/in.h>
+#include <libudev.h>
 #include "mediad.h"
 
 #ifndef MNT_DETACH
@@ -46,6 +47,7 @@
 #endif
 
 
+struct udev *udev;
 pthread_attr_t thread_detached;
 sigset_t termsigs;
 int volatile shutting_down = 0;
@@ -601,10 +603,10 @@ static void *scan_fstab(void *dummy)
 					c->next = new_mcond(MWH_FSTYPE, MOP_EQ, m.ent.mnt_type);
 				add_fsoptions(c, m.ent.mnt_opts);
 			}
-#endif
 		}
 	}
 	endmntent(f);
+#endif
 
 	coldplug();
 
@@ -634,6 +636,10 @@ int daemon_main(void)
 	openlog("mediad", LOG_NDELAY|LOG_PID|LOG_CONS, LOG_DAEMON);
 	setpgrp();
 	chdir("/");
+	if (!(udev = udev_new())) {
+		error("failed to create udev context");
+		return 1;
+	}
 	sigemptyset(&termsigs);
 	sigaddset(&termsigs, SIGINT);
 	sigaddset(&termsigs, SIGQUIT);
@@ -675,5 +681,7 @@ int daemon_main(void)
 		pthread_create(&newthread, &thread_detached,
 					   handle_cmd, (caddr_t)(long)fd);
 	}
+
+	udev_unref(udev);
 	return 0;
 }
