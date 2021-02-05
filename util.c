@@ -157,55 +157,21 @@ void get_dev_infos(mnt_t *m)
 	udev_device_unref(dev);
 }
 
-static __thread unsigned find_maj, find_min;
-static __thread char *found_path;
-
-static int find_dev(const char *name, const struct stat *st,
-					int flag, struct FTW *ft)
-{
-	FILE *f;
-	unsigned ma, mi;
-	
-	if (flag != FTW_F || strcmp(name+ft->base, "dev") != 0)
-		return 0;
-	if (!(f = fopen(name, "r"))) {
-		error("%s: %s", name, strerror(errno));
-		return 0;
-	}
-	if (fscanf(f, "%u:%u", &ma, &mi) != 2) {
-		error("%s: bad contents", name);
-		return 0;
-	}
-	fclose(f);
-	
-	if (ma == find_maj && mi == find_min) {
-		char path[PATH_MAX];
-		getcwd(path, sizeof(path));
-		/* strdup the dir name where the dev file was found, without the /sys
-		 * prefix to be consistent with what udev passes to us */
-		found_path = xmalloc(strlen(path)-4+1);
-		strcpy(found_path, path+4);
-		return 1;
-	}
-	return 0;
-}
-
 void find_devpath(mnt_t *m)
 {
-	struct stat st;
+	struct udev_device *dev;
 
-	if (stat(m->dev, &st)) {
-		error("stat(%s): %s", m->dev, strerror(errno));
+	if (m->devpath)
+		return;
+
+	if (!(dev = udev_device_new_from_subsystem_sysname(udev, "block", m->dev))) {
+		error("%s: failed to get udev object", m->dev);
 		return;
 	}
-	find_maj = major(st.st_rdev);
-	find_min = minor(st.st_rdev);
+	m->devpath = xstrdup(udev_device_get_devpath(dev));
 
-	found_path = NULL;
-	nftw("/sys/block", find_dev, 10, FTW_MOUNT|FTW_CHDIR);
-
-	m->devpath = found_path;
-	debug("found devpath=%s for %s by searching /sys/block",
+	udev_device_unref(dev);
+	debug("found devpath=%s for %s",
 		  m->devpath ? m->devpath : "NONE", m->dev);
 }
 

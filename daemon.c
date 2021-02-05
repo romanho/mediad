@@ -367,8 +367,7 @@ static void add_mount(const char *dev, const char *perm_alias,
 
 	for(i = 0; i < n; ++i)
 		parse_id(m, ids[i]);
-	if (!m->devpath)
-		find_devpath(m);
+	find_devpath(m);
 	check_parent(m);
 	if (!m->parent)
 		m->medium_present = check_medium(m->dev);
