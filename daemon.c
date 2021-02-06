@@ -584,17 +584,28 @@ static void *scan_fstab(void *dummy)
 
 	pthread_sigmask(SIG_BLOCK, &termsigs, NULL);
 
-#if 0
 	if (!(f = setmntent(ETC_FSTAB, "r")))
 		return NULL;
 	while(getmntent_r(f, &m.ent, m.buf, sizeof(m.buf))) {
 		if (strncmp(m.ent.mnt_dir, autodir, al) == 0 &&
 			m.ent.mnt_dir[al] == '/' &&
 			hasmntopt(&m.ent, "noauto")) {
+			const char *devname = m.ent.mnt_fsname;
+			char devname_buf[512];
+			size_t pos;
+
 			debug("found mount %s -> %s with options %s in /etc/fstab",
-				  m.ent.mnt_fsname, m.ent.mnt_dir, m.ent.mnt_opts);
-			// XXX: must handle UUID= or LABEL= mnt_fsname from fstab
-			add_mount(m.ent.mnt_fsname, m.ent.mnt_dir+strlen(autodir)+1, 0, NULL);
+				  devname, m.ent.mnt_dir, m.ent.mnt_opts);
+
+			if ((pos = is_name_eq_val(devname))) {
+				char prop[pos+1];
+				snprintf(prop, pos+1, "%s", devname);
+				if (!find_by_property(prop, devname+pos+1,
+									  devname_buf, sizeof(devname_buf)))
+					continue;
+				devname = devname_buf;
+			}
+			add_mount(devname, m.ent.mnt_dir+strlen(autodir)+1, 0, NULL);
 			{
 				mcond_t *c;
 				c = new_mcond(MWH_MTABDEVNAME, MOP_EQ, m.ent.mnt_fsname);
@@ -605,7 +616,6 @@ static void *scan_fstab(void *dummy)
 		}
 	}
 	endmntent(f);
-#endif
 
 	coldplug();
 

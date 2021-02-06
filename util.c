@@ -99,6 +99,17 @@ char *mkpath(char *buf, const char *add)
 	return p;
 }
 
+#define CHARS_ALNUM \
+	"abcdefghijklmnopqrstuvwxyz" \
+	"ABCDEFGHIJKLMNOPQRSTUVWXYZ" \
+	"0123456789_"
+
+size_t is_name_eq_val(const char *str)
+{
+	size_t n = strspn(str, CHARS_ALNUM);
+	return (n > 0 && str[n] == '=') ? n : 0;
+}
+
 #define Iget(name,field)											\
 	do {															\
 		int __l = strlen(name);										\
@@ -175,6 +186,53 @@ void find_devpath(mnt_t *m)
 		  m->devpath ? m->devpath : "NONE", m->dev);
 }
 
+int find_by_property(const char *propname, const char *propval,
+					 char *outname, size_t outsize)
+{
+	struct udev_enumerate *d_enum;
+	struct udev_list_entry *d_ent;
+
+	*outname = '\0';
+	
+	if (strcmp(propname, "LABEL") == 0)
+		propname = "ID_FS_LABEL";
+	else if (strcmp(propname, "UUID") == 0)
+		propname = "ID_FS_UUID";
+	else {
+		warning("find_by_property: unhandled property '%s' (from /etc/fstab)",
+				propname);
+		return 0;
+	}
+	
+	if (!(d_enum = udev_enumerate_new(udev))) {
+		error("cannot create udev enumerator");
+		return 0;
+	}
+	udev_enumerate_add_match_subsystem(d_enum, "block");
+	udev_enumerate_add_match_property(d_enum, propname, propval);
+	udev_enumerate_scan_devices(d_enum);
+
+	udev_list_entry_foreach(d_ent, udev_enumerate_get_list_entry(d_enum)) {
+		struct udev_device *dev =
+			udev_device_new_from_syspath
+			(udev, udev_list_entry_get_name(d_ent));
+		if (!dev)
+			continue;
+		if (!outname[0])
+			snprintf(outname, outsize, "%s", udev_device_get_sysname(dev));
+		else	
+			warning("ambigous %s=%s (%s and %s are matching)",
+					propname, propval, outname,
+					udev_device_get_sysname(dev));
+	}
+	udev_enumerate_unref(d_enum);
+
+	if (!outname[0]) {
+		warning("no device found for %s=%s", propname, propval);
+		return 0;
+	}
+	return 1;
+}
 
 void mk_dir(mnt_t *m)
 {
