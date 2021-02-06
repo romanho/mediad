@@ -128,7 +128,7 @@ static int getif(char **p)
 	char *w;
 
 	skipwhite(p);
-	if (!(w = getword(p)) || (strcmp(w, "if") != 0 && strcmp(w, "for") != 0))
+	if (!(w = getword(p)) || (strcmp(w, "if") != 0 && !streq(w, "for")))
 		PERRI("missing 'if' or 'for'");
 	return 0;
 }
@@ -139,13 +139,13 @@ static int getbool(char **p)
 
 	if (!(w = getword(p)))
 		PERRI("boolean value missing");
-	if (strcasecmp(w, "y") == 0 || strcasecmp(w, "yes") == 0 ||
-		strcasecmp(w, "t") == 0 || strcasecmp(w, "true") == 0 ||
-		strcasecmp(w, "on") == 0 || strcmp(w, "1") == 0)
+	if (strcaseeq(w, "y") || strcaseeq(w, "yes") ||
+		strcaseeq(w, "t") || strcaseeq(w, "true") ||
+		strcaseeq(w, "on") || streq(w, "1"))
 		return 1;
-	if (strcasecmp(w, "n") == 0 || strcasecmp(w, "no") == 0 ||
-		strcasecmp(w, "f") == 0 || strcasecmp(w, "false") == 0 ||
-		strcasecmp(w, "off") == 0 || strcmp(w, "0") == 0)
+	if (strcaseeq(w, "n") || strcaseeq(w, "no") ||
+		strcaseeq(w, "f") || strcaseeq(w, "false") ||
+		strcaseeq(w, "off") || streq(w, "0"))
 		return 0;
 	PERRIA("bad boolean value '%s'", w);
 }
@@ -169,17 +169,17 @@ static int getled(char **p)
 
 	if (!(w = getword(p)))
 		PERRI("expected led name missing");
-	if (strcasecmp(w, "num") == 0 ||
-		strcasecmp(w, "numlock") == 0)
+	if (strcaseeq(w, "num") ||
+		strcaseeq(w, "numlock"))
 		val = LED_NUM;
-	else if (strcasecmp(w, "cap") == 0 ||
-			 strcasecmp(w, "caps") == 0 ||
-			 strcasecmp(w, "capslock") == 0)
+	else if (strcaseeq(w, "cap") ||
+			 strcaseeq(w, "caps") ||
+			 strcaseeq(w, "capslock"))
 		val = LED_CAP;
-	else if (strcasecmp(w, "scr") == 0 ||
-			 strcasecmp(w, "scroll") == 0 ||
-			 strcasecmp(w, "scrlock") == 0 ||
-			 strcasecmp(w, "scrolllock") == 0)
+	else if (strcaseeq(w, "scr") ||
+			 strcaseeq(w, "scroll") ||
+			 strcaseeq(w, "scrlock") ||
+			 strcaseeq(w, "scrolllock"))
 		val = LED_SCR;
 	else
 		PERRIA("bad led name '%s'", w);
@@ -194,21 +194,21 @@ static mcond_t *getmcond(char **p)
 
 	if (!(w = getword(p)))
 		PERRS("missing keyword for condition");
-	if (strcmp(w, "device") == 0)
+	if (streq(w, "device"))
 		what = MWH_DEVNAME;
-	else if (strcmp(w, "vendor") == 0)
+	else if (streq(w, "vendor"))
 		what = MWH_VENDOR;
-	else if (strcmp(w, "model") == 0)
+	else if (streq(w, "model"))
 		what = MWH_MODEL;
-	else if (strcmp(w, "serial") == 0)
+	else if (streq(w, "serial"))
 		what = MWH_SERIAL;
-	else if (strcmp(w, "partition") == 0)
+	else if (streq(w, "partition"))
 		what = MWH_PARTITION;
-	else if (strcmp(w, "fstype") == 0)
+	else if (streq(w, "fstype"))
 		what = MWH_FSTYPE;
-	else if (strcmp(w, "uuid") == 0)
+	else if (streq(w, "uuid"))
 		what = MWH_UUID;
-	else if (strcmp(w, "label") == 0)
+	else if (streq(w, "label"))
 		what = MWH_LABEL;
 	else
 		PERRSA("unknown match condition '%s'", w);
@@ -262,47 +262,47 @@ static void parse_line(int lno, char *line)
 
 	if (!(w = getword(&p)))
 		goto parse_err;
-	if (strcmp(w, "scan-fstab") == 0) {
+	if (streq(w, "scan-fstab")) {
 		if (getassign(&p) || (n = getbool(&p)) < 0)
 			goto parse_err;
 		config.no_scan_fstab = !n;
 	}
-	else if (strcmp(w, "model-alias") == 0) {
+	else if (streq(w, "model-alias")) {
 		if (getassign(&p) || (n = getbool(&p)) < 0)
 			goto parse_err;
 		config.no_model_alias = !n;
 	}
-	else if (strcmp(w, "label-alias") == 0) {
+	else if (streq(w, "label-alias")) {
 		if (getassign(&p) || (n = getbool(&p)) < 0)
 			goto parse_err;
 		config.no_label_alias = !n;
 	}
-	else if (strcmp(w, "label-unique") == 0) {
+	else if (streq(w, "label-unique")) {
 		if (getassign(&p) || (n = getbool(&p)) < 0)
 			goto parse_err;
 		config.no_label_unique = !n;
 	}
-	else if (strcmp(w, "uuid-alias") == 0) {
+	else if (streq(w, "uuid-alias")) {
 		if (getassign(&p) || (n = getbool(&p)) < 0)
 			goto parse_err;
 		config.uuid_alias = n;
 	}
-	else if (strcmp(w, "hide-device-name") == 0) {
+	else if (streq(w, "hide-device-name")) {
 		if (getassign(&p) || (n = getbool(&p)) < 0)
 			goto parse_err;
 		config.hide_device_name = n;
 	}
-	else if (strcmp(w, "debug") == 0) {
+	else if (streq(w, "debug")) {
 		if (getassign(&p) || (n = getbool(&p)) < 0)
 			goto parse_err;
 		config.debug = n;
 	}
-	else if (strcmp(w, "blink-led") == 0) {
+	else if (streq(w, "blink-led")) {
 		if (getassign(&p) || (n = getled(&p)) < 0)
 			goto parse_err;
 		config.blink_led = n;
 	}
-	else if (strcmp(w, "expire-frequency") == 0) {
+	else if (streq(w, "expire-frequency")) {
 		if (getassign(&p) || (n = getnum(&p)) < 0)
 			goto parse_err;
 		if (n < 1) {
@@ -311,7 +311,7 @@ static void parse_line(int lno, char *line)
 		}
 		config.expire_freq = n;
 	}
-	else if (strcmp(w, "expire-timeout") == 0) {
+	else if (streq(w, "expire-timeout")) {
 		if (getassign(&p) || (n = getnum(&p)) < 0)
 			goto parse_err;
 		if (n < 1) {
@@ -320,24 +320,24 @@ static void parse_line(int lno, char *line)
 		}
 		config.expire_timeout = n;
 	}
-	else if (strcmp(w, "options") == 0) {
+	else if (streq(w, "options")) {
 		if (!(w = getstr(&p)) || getif(&p) || !(c = getmcondlist(&p)))
 			goto parse_err;
 		add_fsoptions(c, w);
 	}
-	else if (strcmp(w, "alias") == 0) {
+	else if (streq(w, "alias")) {
 		if (!(w = getstr(&p)) || getif(&p) || !(c = getmcondlist(&p)))
 			goto parse_err;
 		add_alias(c, w);
 	}
-	else if (strcmp(w, "no_automount") == 0) {
+	else if (streq(w, "no_automount")) {
 		if (getif(&p) || !(c = getmcondlist(&p)))
 			goto parse_err;
 		add_mntoptions(c, MOPT_NO_AUTOMOUNT);
 	}
-	else if (strcmp(w, "use") == 0) {
+	else if (streq(w, "use")) {
 		if (!(w = getstr(&p)) ||
-			!(w2 = getword(&p)) || strcmp(w2, "instead") != 0 ||
+			!(w2 = getword(&p)) || !streq(w2, "instead") ||
 			!(w2 = getstr(&p)))
 			goto parse_err;
 		add_fstype_replace(w2, w);

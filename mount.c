@@ -76,7 +76,7 @@ static void init_mount_helpers(void)
 		if (!(d = opendir(*dir)))
 			continue;
 		while((de = readdir(d))) {
-			if (strncmp(de->d_name, "mount.", 6) == 0) {
+			if (strprefix(de->d_name, "mount.")) {
 				mhelper_t *h = xmalloc(sizeof(mhelper_t));
 				h->fstype = xstrdup(de->d_name+6);
 				h->binary = xmalloc(strlen(*dir)+1+strlen(de->d_name)+1);

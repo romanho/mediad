@@ -155,24 +155,24 @@ int main(int argc, char *argv[], char **env)
 	openlog("mediad-if", LOG_CONS|LOG_ODELAY|LOG_PERROR, LOG_DAEMON);
 	if (geteuid() != 0)
 		fatal("You must be root");
-	if (argc == 2 && strcmp(argv[1], "start") == 0) {
+	if (argc == 2 && streq(argv[1], "start")) {
 		test_sock();
 		return 0;
 	}
 	if (!(action = getenv("ACTION")))
 		fatal("Environment variable 'ACTION' not set");
-	if (strcmp(action, "add") != 0 && strcmp(action, "remove") != 0)
+	if (!streq(action, "add") && !streq(action, "remove"))
 		fatal("ACTION must be 'add' or 'remove'");
 	if (!(devname = getenv("DEVNAME")))
 		fatal("Environment variable 'DEVNAME' not set");
 	
-	if (strcmp(action, "add") == 0) {
+	if (streq(action, "add")) {
 		unsigned i, n = 0;
 		const char *ids[MAX_IDS];
 
 		for(i = 0; env[i]; ++i) {
-			if (strncmp(env[i], "ID_", 3) == 0 ||
-				strncmp(env[i], "DEVPATH=", 8) == 0)
+			if (strprefix(env[i], "ID_") ||
+				strprefix(env[i], "DEVPATH="))
 				ids[n++] = env[i];
 		}
 		ids[n] = NULL;

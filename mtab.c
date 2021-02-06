@@ -92,7 +92,7 @@ static void _rm_mtab(const char *dir)
 		goto out;
 	}
 	for(m = mlist; m; m = m->next) {
-		if (strcmp(m->ent.mnt_dir, dir) != 0)
+		if (!streq(m->ent.mnt_dir, dir))
 			addmntent(f, &m->ent);
 	}
 	fclose(f);

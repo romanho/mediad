@@ -201,7 +201,7 @@ void mnt_add_alias(mnt_t *m, const char *a, unsigned flags)
 	 * name; if found, clear its OLD flag so that it won't be removed */
 	if (flags & AF_OLD) {
 		for(al = m->aliases; al; al = al->next) {
-			if (strcmp(al->name, a) == 0) {
+			if (streq(al->name, a)) {
 				al->flags &= ~AF_OLD;
 				return;
 			}

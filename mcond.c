@@ -57,30 +57,30 @@ static int match_one_cond(mcond_t *cond, mnt_t *m, int *fsspec)
 	switch(cond->what) {
 	  case MWH_DEVNAME:
 	  case MWH_MTABDEVNAME:
-		rv = m->dev && strcmp(m->dev, cond->value) == 0;
+		rv = m->dev && streq(m->dev, cond->value);
 		break;
 	  case MWH_VENDOR:
-		rv = m->vendor && strcmp(m->vendor, cond->value) == 0;
+		rv = m->vendor && streq(m->vendor, cond->value);
 		break;
 	  case MWH_MODEL:
-		rv = m->model && strcmp(m->model, cond->value) == 0;
+		rv = m->model && streq(m->model, cond->value);
 		break;
 	  case MWH_SERIAL:
-		rv = m->serial && strcmp(m->serial, cond->value) == 0;
+		rv = m->serial && streq(m->serial, cond->value);
 		break;
 	  case MWH_PARTITION:
 		rv = m->partition == atoi(cond->value);
 		break;
 	  case MWH_FSTYPE:
-		rv = m->type && strcmp(m->type, cond->value) == 0;
+		rv = m->type && streq(m->type, cond->value);
 		if (fsspec) *fsspec = 1;
 		break;
 	  case MWH_UUID:
-		rv = m->uuid && strcmp(m->uuid, cond->value) == 0;
+		rv = m->uuid && streq(m->uuid, cond->value);
 		if (fsspec) *fsspec = 1;
 		break;
 	  case MWH_LABEL:
-		rv = m->label && strcmp(m->label, cond->value) == 0;
+		rv = m->label && streq(m->label, cond->value);
 		if (fsspec) *fsspec = 1;
 		break;
 	  default:

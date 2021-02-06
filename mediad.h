@@ -148,6 +148,16 @@ typedef struct _mntent_list {
 			logit(LOG_INFO, "{%u} " str, pthread_self(), ## args);	\
 	} while(0)
 
+static __inline__ int streq(const char *a, const char *b) {
+	return strcmp(a, b) == 0;
+}
+static __inline__ int strcaseeq(const char *a, const char *b) {
+	return strcasecmp(a, b) == 0;
+}
+static __inline__ const char *strprefix(const char *a, const char *b) {
+	return (strncmp(a, b, strlen(b)) == 0) ? a+strlen(b) : NULL;
+}
+
 /* daemon.c */
 extern struct udev *udev;
 extern pthread_attr_t thread_detached;

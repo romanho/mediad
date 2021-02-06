@@ -48,10 +48,10 @@ static char *filter_options(const char *_opts)
 	sopts[0] = '\0';
 	for(p = strtok(opts, ","); p; p = strtok(NULL, ",")) {
 		/* filter out options that have meaning only in /etc/fstab */
-		if (strcmp(p, "auto") != 0 && strcmp(p, "noauto") != 0 &&
-			strcmp(p, "user") != 0 && strcmp(p, "nouser") != 0 &&
-			strcmp(p, "users") != 0 && strcmp(p, "nousers") != 0 &&
-			strncmp(p, "fs=", 3) != 0) {
+		if (!streq(p, "auto") && !streq(p, "noauto") &&
+			!streq(p, "user") && !streq(p, "nouser") &&
+			!streq(p, "users") && !streq(p, "nousers") &&
+			!strprefix(p, "fs=")) {
 			if (sopts[0])
 				strcat(sopts, ",");
 			strcat(sopts, p);
@@ -125,42 +125,42 @@ void parse_mount_options(const char *_opts, int *iopts, const char **sopts)
 	strcpy(opts, _opts);
 	*_sopts = '\0';
 	for(p = strtok(opts, ","); p; p = strtok(NULL, ",")) {
-		if (strcmp(p, "ro") == 0)
+		if (streq(p, "ro"))
 			*iopts |= MS_RDONLY;
-		else if (strcmp(p, "rw") == 0)
+		else if (streq(p, "rw"))
 			*iopts &= ~MS_RDONLY;
-		else if (strcmp(p, "nosuid") == 0)
+		else if (streq(p, "nosuid"))
 			*iopts |= MS_NOSUID;
-		else if (strcmp(p, "suid") == 0)
+		else if (streq(p, "suid"))
 			*iopts &= ~MS_NOSUID;
-		else if (strcmp(p, "nodev") == 0)
+		else if (streq(p, "nodev"))
 			*iopts |= MS_NODEV;
-		else if (strcmp(p, "dev") == 0)
+		else if (streq(p, "dev"))
 			*iopts &= ~MS_NODEV;
-		else if (strcmp(p, "noexec") == 0)
+		else if (streq(p, "noexec"))
 			*iopts |= MS_NOEXEC;
-		else if (strcmp(p, "exec") == 0)
+		else if (streq(p, "exec"))
 			*iopts &= ~MS_NOEXEC;
-		else if (strcmp(p, "sync") == 0)
+		else if (streq(p, "sync"))
 			*iopts |= MS_SYNCHRONOUS;
-		else if (strcmp(p, "async") == 0)
+		else if (streq(p, "async"))
 			*iopts &= ~MS_SYNCHRONOUS;
-		else if (strcmp(p, "mand") == 0)
+		else if (streq(p, "mand"))
 			*iopts |= MS_MANDLOCK;
-		else if (strcmp(p, "nomand") == 0)
+		else if (streq(p, "nomand"))
 			*iopts &= ~MS_MANDLOCK;
-		else if (strcmp(p, "noatime") == 0)
+		else if (streq(p, "noatime"))
 			*iopts |= MS_NOATIME;
-		else if (strcmp(p, "atime") == 0)
+		else if (streq(p, "atime"))
 			*iopts &= ~MS_NOATIME;
-		else if (strcmp(p, "nodiratime") == 0)
+		else if (streq(p, "nodiratime"))
 			*iopts |= MS_NODIRATIME;
-		else if (strcmp(p, "diratime") == 0)
+		else if (streq(p, "diratime"))
 			*iopts &= ~MS_NODIRATIME;
-		else if (strcmp(p, "auto") == 0 || strcmp(p, "noauto") == 0 ||
-				 strcmp(p, "user") == 0 || strcmp(p, "nouser") == 0 ||
-				 strcmp(p, "users") == 0 || strcmp(p, "nousers") == 0 ||
-				 strncmp(p, "fs=", 3) == 0)
+		else if (streq(p, "auto") || streq(p, "noauto") ||
+				 streq(p, "user") || streq(p, "nouser") ||
+				 streq(p, "users") || streq(p, "nousers") ||
+				 strprefix(p, "fs="))
 			/* omit */ ;
 		else {
 			/* if not a predefined option, append to string options and pass

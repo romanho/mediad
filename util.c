@@ -112,10 +112,10 @@ size_t is_name_eq_val(const char *str)
 
 #define Iget(name,field)											\
 	do {															\
-		int __l = strlen(name);										\
-		if (strncmp(line, name, __l) == 0 && line[__l] == '=') {	\
+		const char *__p;											\
+		if ((__p = strprefix(line, name)) && *__p == '=') {			\
 			xfree(&m->field);										\
-			m->field = xstrdup(line+__l+1);							\
+			m->field = xstrdup(__p+1);								\
 			debug("found %s = '%s'", #field, m->field);				\
 			return;													\
 		}															\
@@ -156,7 +156,7 @@ void get_dev_infos(mnt_t *m)
 	while(list_entry) {
 		const char *pnam = udev_list_entry_get_name(list_entry);
 		const char *pval = udev_list_entry_get_value(list_entry);
-		if (pnam && pval && strcmp(pnam, "DEVPATH") != 0) {
+		if (pnam && pval && !streq(pnam, "DEVPATH")) {
 			char buf[strlen(pnam)+strlen(pval)+2];
 			sprintf(buf, "%s=%s", pnam, pval);
 			replace_untrusted_chars(buf);
@@ -194,9 +194,9 @@ int find_by_property(const char *propname, const char *propval,
 
 	*outname = '\0';
 	
-	if (strcmp(propname, "LABEL") == 0)
+	if (streq(propname, "LABEL"))
 		propname = "ID_FS_LABEL";
-	else if (strcmp(propname, "UUID") == 0)
+	else if (streq(propname, "UUID"))
 		propname = "ID_FS_UUID";
 	else {
 		warning("find_by_property: unhandled property '%s' (from /etc/fstab)",

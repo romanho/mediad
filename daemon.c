@@ -58,15 +58,15 @@ static pthread_mutexattr_t rec_mutex;
 
 static int by_dirname(mnt_t *m, const void *arg)
 {
-	return strcmp(m->dir, (const char*)arg) == 0;
+	return streq(m->dir, (const char*)arg);
 }
 static int by_dev(mnt_t *m, const void *arg)
 {
-	return strcmp(m->dev, (const char*)arg) == 0;
+	return streq(m->dev, (const char*)arg);
 }
 static int by_devpath(mnt_t *m, const void *arg)
 {
-	return m->devpath ? strcmp(m->devpath, (const char*)arg) == 0 : 0;
+	return m->devpath ? streq(m->devpath, (const char*)arg) : 0;
 }
 static int by_ptr(mnt_t *m, const void *arg)
 {
@@ -291,11 +291,11 @@ static void check_parent(mnt_t *m)
 
 static const char *dev_to_dir(const char *dev)
 {
-	const char *p = dev;
+	const char *p = dev, *pp;
 	char *q, *r;
 
-	if (strncmp(dev, "/dev/", 5) == 0)
-		p += 5;
+	if ((pp = strprefix(dev, "/dev/")))
+		p = pp;
 	q = r = xmalloc(strlen(p)+2);
 	if (config.hide_device_name)
 		*q++ = '.';
@@ -377,7 +377,7 @@ static void add_mount(const char *dev, const char *perm_alias,
 		get_dev_infos(m);
 
 	/* add permanent alias only if different from mountpoint */
-	if (perm_alias && perm_alias[0] && strcmp(perm_alias, m->dir) != 0)
+	if (perm_alias && perm_alias[0] && !streq(perm_alias, m->dir))
 		mnt_add_alias(m, perm_alias, AF_PERM);
 	mnt_add_model_alias(m);
 	mnt_add_label_alias(m, 0);
@@ -440,7 +440,7 @@ static void rm_mount(const char *dev)
   again:
 	pthread_mutex_lock(&mounts_lock);
 	for(mm = &mounts; *mm; mm = &(*mm)->next) {
-		if (strcmp(dev, (*mm)->dev) == 0)
+		if (streq(dev, (*mm)->dev))
 			break;
 	}
 	if (!(m = *mm)) {
@@ -580,19 +580,19 @@ static void *scan_fstab(void *dummy)
 {
 	FILE *f;
 	mntent_list_t m;
-	int al = strlen(autodir);
+	const char *p;
 
 	pthread_sigmask(SIG_BLOCK, &termsigs, NULL);
 
 	if (!(f = setmntent(ETC_FSTAB, "r")))
 		return NULL;
 	while(getmntent_r(f, &m.ent, m.buf, sizeof(m.buf))) {
-		if (strncmp(m.ent.mnt_dir, autodir, al) == 0 &&
-			m.ent.mnt_dir[al] == '/' &&
+		if ((p = strprefix(m.ent.mnt_dir, autodir)) && *p == '/' &&
 			hasmntopt(&m.ent, "noauto")) {
 			const char *devname = m.ent.mnt_fsname;
 			char devname_buf[512];
 			size_t pos;
+			mcond_t *c;
 
 			debug("found mount %s -> %s with options %s in /etc/fstab",
 				  devname, m.ent.mnt_dir, m.ent.mnt_opts);
@@ -605,14 +605,12 @@ static void *scan_fstab(void *dummy)
 					continue;
 				devname = devname_buf;
 			}
+
 			add_mount(devname, m.ent.mnt_dir+strlen(autodir)+1, 0, NULL);
-			{
-				mcond_t *c;
-				c = new_mcond(MWH_MTABDEVNAME, MOP_EQ, m.ent.mnt_fsname);
-				if (strcmp(m.ent.mnt_type, "subfs") != 0)
-					c->next = new_mcond(MWH_FSTYPE, MOP_EQ, m.ent.mnt_type);
-				add_fsoptions(c, m.ent.mnt_opts);
-			}
+			c = new_mcond(MWH_MTABDEVNAME, MOP_EQ, m.ent.mnt_fsname);
+			if (!streq(m.ent.mnt_type, "subfs"))
+				c->next = new_mcond(MWH_FSTYPE, MOP_EQ, m.ent.mnt_type);
+			add_fsoptions(c, m.ent.mnt_opts);
 		}
 	}
 	endmntent(f);
