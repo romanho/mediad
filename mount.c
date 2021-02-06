@@ -1,7 +1,7 @@
 /*
  * mediad -- daemon to automount removable media
  *
- * Copyright (c) 2006-2008 by Roman Hodek <roman@hodek.net>
+ * Copyright (c) 2006-2021 by Roman Hodek <roman@hodek.net>
  * 
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the Free
