@@ -4,7 +4,7 @@ LD      = gcc
 LDFLAGS =
 LIBS    = -ludev -lpthread
 
-OBJS = main.o daemon.o autofs.o changed.o coldplug.o config.o \
+OBJS = main.o daemon.o autofs.o changed.o device.o config.o \
 	   mount.o fsoptions.o aliases.o mcond.o mtab.o util.o
 
 DESTDIR = 

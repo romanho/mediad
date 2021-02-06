@@ -183,7 +183,10 @@ int check_medium(const char *dev);
 void check_medium_change(mnt_t *m);
 void set_no_medium_present(mnt_t *m);
 
-/* coldplug.c */
+/* udev.c */
+void get_dev_infos(mnt_t *m);
+void find_devpath(mnt_t *m);
+int find_by_property(const char *propname, const char *propval, char *outname, size_t outsize);
 void coldplug(void);
 
 /* config.c */
@@ -240,9 +243,6 @@ size_t is_name_eq_val(const char *str);
 const char *getid(unsigned n, const char **ids, const char *what);
 void parse_id(mnt_t *m, const char *line);
 void replace_untrusted_chars(char *p);
-void get_dev_infos(mnt_t *m);
-void find_devpath(mnt_t *m);
-int find_by_property(const char *propname, const char *propval, char *outname, size_t outsize);
 void mk_dir(mnt_t *m);
 void rm_dir(mnt_t *m);
 void send_num(int fd, unsigned num);
