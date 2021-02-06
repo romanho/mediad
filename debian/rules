@@ -42,7 +42,7 @@ binary-arch: build
 	# symlinks in /etc/udev/rules.d shouldn't be in the package but be created
 	# by postinst script
 	rm -rf $(tmpdir)/etc/udev
-	dh_installinit --no-stop-on-upgrade -- start 90 S .
+	dh_installinit --no-stop-on-upgrade -- defaults .
 	dh_installman
 	dh_installdocs README
 	dh_installchangelogs
