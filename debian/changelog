@@ -1,3 +1,21 @@
+mediad (0.11.99.1) unstable; urgency=medium
+
+  * Switch from libblkid to libudev, which uniformly gives more infos, and
+    is easier to handle.
+  * Added "coldplugging", i.e. scanning of devices existing at start.
+  * Recognize LABEL= and UUID= in devname of /etc/fstab.
+  * fix warning in update-rc.d call
+
+ -- Roman Hodek <roman@ridcully.hodek.net>  Sat, 06 Feb 2021 12:46:23 +0100
+
+mediad (0.11) unstable; urgency=medium
+
+  * Switch from libvolume_id to libblkid.
+  * Call replace_untrusted_chars also for labels passed in from environment.
+  * update dh_compat to 12
+
+ -- Roman Hodek <roman@ridcully.hodek.net>  Thu, 17 Mar 2016 00:00:00 +0100
+
 mediad (0.10) unstable; urgency=low
 
   * Autofs in kernels since 3.3 cannot handle a split read anymore, so
