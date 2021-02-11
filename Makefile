@@ -10,6 +10,7 @@ OBJS = main.o daemon.o autofs.o changed.o device.o config.o \
 DESTDIR = 
 BINDIR  = /sbin
 ETCDIR  = /etc
+LIBDIR  = /lib
 MAN5DIR = /usr/share/man/man5
 MAN8DIR = /usr/share/man/man8
 
@@ -29,8 +30,8 @@ install: mediad
 		install -m 644 mediad.rules $(DESTDIR)$(ETCDIR)/mediad/
 	[ -f $(DESTDIR)$(ETCDIR)/mediad/mediad.conf ] || \
 		install -m 644 mediad.conf $(DESTDIR)$(ETCDIR)/mediad/
-	install -d $(DESTDIR)$(ETCDIR)/udev/rules.d
-	ln -s ../../mediad/mediad.rules $(DESTDIR)$(ETCDIR)/udev/rules.d/z51_mediad.rules
+	install -d $(DESTDIR)$(LIBDIR)/udev/rules.d
+	ln -s ../../mediad/mediad.rules $(DESTDIR)$(LIBDIR)/udev/rules.d/z51_mediad.rules
 	install -d $(DESTDIR)$(MAN5DIR) $(DESTDIR)$(MAN8DIR)
 	install -m 644 mediad.conf.5 $(DESTDIR)$(MAN5DIR)
 	install -m 644 mediad.8 $(DESTDIR)$(MAN8DIR)

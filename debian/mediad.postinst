@@ -1,10 +1,12 @@
 #!/bin/sh
 set -e
 
-# create rules.d symlink only on first install
-if [ "$1" = configure -a -z "$2" ]; then
-	[ -e /etc/udev/rules.d/z51_mediad.rules ] || \
-		ln -s ../../mediad/mediad.rules /etc/udev/rules.d/z51_mediad.rules
+# create rules.d symlink
+if [ "$1" = configure ]; then
+	if [ ! -e /lib/udev/rules.d/z51_mediad.rules ]; then
+		ln -s ../../mediad/mediad.rules /lib/udev/rules.d/z51_mediad.rules
+		udevadm control --reload
+	fi
 fi
 
 #DEBHELPER#

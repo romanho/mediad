@@ -5,12 +5,13 @@
 # Required-Stop:     
 # Default-Start:     S
 # Default-Stop:
-# Short-Description: Ensure mediad works by reloading udev
+# Short-Description: automouting removable media
 ### END INIT INFO
+
+. /lib/lsb/init-functions
 
 case "$1" in
     start)
-		/etc/init.d/udev reload
 		/sbin/mediad start >/dev/null
 		;;
     stop)

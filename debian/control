@@ -3,11 +3,12 @@ Section: admin
 Priority: optional
 Maintainer: Roman Hodek <roman@hodek.net>
 Build-Depends: debhelper-compat (= 12), libudev-dev
-Standards-Version: 3.6.2
+Standards-Version: 4.3.0
 
 Package: mediad
 Architecture: any
-Depends: udev (>= 241), ${shlibs:Depends}
+Pre-Depends: ${misc:Pre-Depends}
+Depends: udev (>= 241), ${shlibs:Depends}, ${misc:Depends}
 Description: Daemon for automouting removable media, together with udev.
  mediad makes /mediad an automount directory populated with removable media
  devices found on your system, and devices dynamically added or removed via

@@ -3,3 +3,6 @@ mediad
 build
 debian/files
 debian/mediad.substvars
+debian/debhelper-build-stamp
+debian/mediad.postrm.debhelper
+debian/source/format
