@@ -203,7 +203,7 @@ static void *handle_expire(void *_pkt)
 	return NULL;
 }
 
-static int read_kernel_packet(int fd, union autofs_packet_union *pkt)
+static int read_kernel_packet(int fd, union autofs_v5_packet_union *pkt)
 {
 	char *p;
 	size_t len = sizeof(struct autofs_packet_hdr);
@@ -275,7 +275,7 @@ static int read_kernel_packet(int fd, union autofs_packet_union *pkt)
 
 static void *handle_autofs_events(void *dummy)
 {
-	union autofs_packet_union pkt, *pktp;
+	union autofs_v5_packet_union pkt, *pktp;
 
 	pthread_sigmask(SIG_BLOCK, &termsigs, NULL);
 	
@@ -287,14 +287,14 @@ static void *handle_autofs_events(void *dummy)
 
 		switch(pkt.hdr.type) {
 		  case autofs_ptype_missing:
-			pktp = xmalloc(sizeof(union autofs_packet_union));
+			pktp = xmalloc(sizeof(union autofs_v5_packet_union));
 			*pktp = pkt;
 			if (pthread_create(&newthread, &thread_detached,
 							   handle_missing, pktp))
 				warning("failed to create mount thread");
 			break;
 		  case autofs_ptype_expire_multi:
-			pktp = xmalloc(sizeof(union autofs_packet_union));
+			pktp = xmalloc(sizeof(union autofs_v5_packet_union));
 			*pktp = pkt;
 			if (pthread_create(&newthread, &thread_detached,
 							   handle_expire, pktp))
