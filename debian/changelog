@@ -5,8 +5,11 @@ mediad (0.11.99.1) unstable; urgency=medium
   * Added "coldplugging", i.e. scanning of devices existing at start.
   * Recognize LABEL= and UUID= in devname of /etc/fstab.
   * fix warning in update-rc.d call
+  * fix various compiler warnings
+  * added service file for systemd
+  * modernized Debian packaging and made (nearly) lintian-clean
 
- -- Roman Hodek <roman@ridcully.hodek.net>  Sat, 06 Feb 2021 12:46:23 +0100
+ -- Roman Hodek <roman@ridcully.hodek.net>  Thu, 11 Feb 2021 19:59:57 +0100
 
 mediad (0.11) unstable; urgency=medium
 
