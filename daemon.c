@@ -656,7 +656,10 @@ int daemon_main(void)
 	
 	openlog("mediad", LOG_NDELAY|LOG_PID|LOG_CONS, LOG_DAEMON);
 	setpgrp();
-	chdir("/");
+	if (chdir("/")) {
+		error("failed to chdir");
+		return 1;
+	}
 	if (!(udev = udev_new())) {
 		error("failed to create udev context");
 		return 1;

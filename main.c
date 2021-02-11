@@ -63,7 +63,7 @@ static void start_daemon(void)
 	sigaddset(&blocksigs, SIGCHLD);
 	sigprocmask(SIG_BLOCK, &blocksigs, &oldsigs);
 
-	if ((fd = open(SOCKLOCK, O_CREAT|O_EXCL)) < 0) {
+	if ((fd = open(SOCKLOCK, O_CREAT|O_EXCL, 0600)) < 0) {
 		if (errno == EEXIST) {
 			/* another daemon has already been launched, but it hasn't opened
 			 * the listening socket yet... simply wait a bit */
@@ -141,7 +141,8 @@ static void send_cmd(char cmd, const char *dev, unsigned n, const char *ids[])
 			fatal("connect: %s", strerror(errno));
 	}
 
-	write(sock, &cmd, 1);
+	if (write(sock, &cmd, 1) != 1)
+		warning("socket write error: %s", strerror(errno));
 	send_str(sock, dev);
 	send_num(sock, n);
 	for(i = 0; i < n; ++i)

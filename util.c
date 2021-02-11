@@ -161,7 +161,8 @@ void send_num(int fd, unsigned num)
 	if (num > USHRT_MAX)
 		fatal("Number too large (%u)", num);
 	u.i = htons(num);
-	write(fd, u.c, 2);
+	if (write(fd, u.c, 2) != 2)
+		warning("socket write error: %s", strerror(errno));
 }
 
 void send_str(int fd, const char *str)
@@ -169,7 +170,8 @@ void send_str(int fd, const char *str)
 	int len = strlen(str)+1;
 
 	send_num(fd, len);
-	write(fd, str, len);
+	if (write(fd, str, len) != len)
+		warning("socket write error: %s", strerror(errno));
 }
 
 unsigned recv_num(int fd)
