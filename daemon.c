@@ -568,6 +568,18 @@ static int open_socket(void)
 	return sock;
 }
 
+static void make_pidfile(void)
+{
+	FILE *f;
+
+	if (!(f = fopen(PIDFILE, "w"))) {
+		error("cannot create %s: %s", PIDFILE, strerror(errno));
+		return;
+	}
+	fprintf(f, "%d\n", getpid());
+	fclose(f);
+}
+
 void add_mount_with_devpath(const char *devname, const char *devpath)
 {
 	char *ids[1];
@@ -630,6 +642,8 @@ static void do_shutdown(int signr)
 		rm_mount(mounts->dev);
 	stop_automount(autodir);
 	unlink(SOCKNAME);
+	unlink(PIDFILE);
+	udev_unref(udev);
 	debug("daemon exiting");
 	exit(0);
 }
@@ -653,6 +667,7 @@ int daemon_main(void)
 	sigaddset(&termsigs, SIGTERM);
 	pthread_sigmask(SIG_BLOCK, &termsigs, NULL);
 
+	make_pidfile();
 	read_config();
 	listen_fd = open_socket();
 	start_automount(autodir);
@@ -689,6 +704,5 @@ int daemon_main(void)
 					   handle_cmd, (caddr_t)(long)fd);
 	}
 
-	udev_unref(udev);
 	return 0;
 }

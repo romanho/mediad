@@ -8,6 +8,7 @@
 #include <syslog.h>
 
 #define CONFIGFILE			"/etc/mediad/mediad.conf"
+#define PIDFILE				"/run/mediad.pid"
 #define SOCKNAME			"/dev/.mediad"
 #define SOCKLOCK			"/dev/.mediad.lock"
 #define ETC_FSTAB			"/etc/fstab"
