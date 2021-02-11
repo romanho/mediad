@@ -31,7 +31,7 @@ install: mediad
 	[ -f $(DESTDIR)$(ETCDIR)/mediad/mediad.conf ] || \
 		install -m 644 mediad.conf $(DESTDIR)$(ETCDIR)/mediad/
 	install -d $(DESTDIR)$(LIBDIR)/udev/rules.d
-	ln -s ../../mediad/mediad.rules $(DESTDIR)$(LIBDIR)/udev/rules.d/z51_mediad.rules
+	ln -s ../../../$(ETCDIR)/mediad/mediad.rules $(DESTDIR)$(LIBDIR)/udev/rules.d/z51_mediad.rules
 	install -d $(DESTDIR)$(MAN5DIR) $(DESTDIR)$(MAN8DIR)
 	install -m 644 mediad.conf.5 $(DESTDIR)$(MAN5DIR)
 	install -m 644 mediad.8 $(DESTDIR)$(MAN8DIR)

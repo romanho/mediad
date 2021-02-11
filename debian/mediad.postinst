@@ -4,7 +4,7 @@ set -e
 # create rules.d symlink
 if [ "$1" = configure ]; then
 	if [ ! -e /lib/udev/rules.d/z51_mediad.rules ]; then
-		ln -s ../../mediad/mediad.rules /lib/udev/rules.d/z51_mediad.rules
+		ln -sf ../../../etc/mediad/mediad.rules /lib/udev/rules.d/z51_mediad.rules
 		udevadm control --reload
 	fi
 fi
