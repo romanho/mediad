@@ -1,8 +1,12 @@
 [Unit]
 Description=automouter for removable media
 Documentation=man:mediad(8)
+After=udev.service
 
 [Service]
 Type=forking
 ExecStart=/sbin/mediad start
 PIDFile=mediad.pid
+
+[Install]
+WantedBy=multi-user.target
