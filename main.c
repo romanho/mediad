@@ -136,6 +136,10 @@ static void send_cmd(char cmd, const char *dev, unsigned n, const char *ids[])
 		if (errno != ENOENT && errno != ECONNREFUSED)
 			fatal("connect: %s", strerror(errno));
 		/* no daemon running, start one */
+		/* There's actually a race here if multiple instances of main process
+		 * are started simultanously and the first started daemon hasn't
+		 * created the socket yet. But this is non-critical, as a second
+		 * daemon will  */
 		start_daemon();
 		if (connect(sock, (struct sockaddr*)&sa, sizeof(sa)) < 0)
 			fatal("connect: %s", strerror(errno));
@@ -147,6 +151,7 @@ static void send_cmd(char cmd, const char *dev, unsigned n, const char *ids[])
 	send_num(sock, n);
 	for(i = 0; i < n; ++i)
 		send_str(sock, ids[i]);
+	close(sock);
 }
 
 int main(int argc, char *argv[], char **env)
@@ -171,7 +176,7 @@ int main(int argc, char *argv[], char **env)
 		unsigned i, n = 0;
 		const char *ids[MAX_IDS];
 
-		for(i = 0; env[i]; ++i) {
+		for(i = 0; env[i] && n < MAX_IDS-1; ++i) {
 			if (strprefix(env[i], "ID_") ||
 				strprefix(env[i], "DEVPATH="))
 				ids[n++] = env[i];

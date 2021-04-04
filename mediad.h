@@ -17,7 +17,7 @@
 #define DEF_FSOPTIONS		"nosuid,nodev"
 #define DEF_AUTOFS_EXP_FREQ	2
 #define DEF_AUTOFS_TIMEOUT	4
-#define MAX_IDS				32
+#define MAX_IDS				128
 #define MAX_ALIASES			16
 
 typedef enum {
