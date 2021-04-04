@@ -36,6 +36,8 @@
 #include <sys/stat.h>
 #include <sys/time.h>
 #include <sys/mount.h>
+#include <sys/mount.h>
+#include <sys/sysinfo.h>
 #include <sys/socket.h>
 #include <sys/un.h>
 #include <netinet/in.h>
@@ -596,11 +598,20 @@ void add_mount_with_devpath(const char *devname, const char *devpath)
 
 static void *scan_fstab(void *dummy)
 {
+	struct sysinfo si;
 	FILE *f;
 	mntent_list_t m;
 	const char *p;
 
 	pthread_sigmask(SIG_BLOCK, &termsigs, NULL);
+
+	sysinfo(&si);
+	debug("scan_fstab thread started at uptime=%u", si.uptime);
+	if (si.uptime < 10) {
+		debug("scan_fstab: wait for %us",10 - si.uptime);
+		sleep(10 - si.uptime);
+		debug("done, now scanning");
+	}
 
 	if (!(f = setmntent(ETC_FSTAB, "r")))
 		return NULL;
@@ -633,7 +644,10 @@ static void *scan_fstab(void *dummy)
 	}
 	endmntent(f);
 
-	coldplug();
+	if (si.uptime >= 10)
+		coldplug();
+	else
+		debug("skip coldplug as started early");
 
 	return NULL;
 }
