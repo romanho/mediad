@@ -522,10 +522,16 @@ static void *handle_cmd(void *arg)
 		close(fd);
 		return NULL;
 	}
-	if (n != 1)
-		fatal("read from cmd socket: %s", strerror(errno));
-	if (cmd != '+' && cmd != '-')
-		fatal("bad command '%c'", cmd);
+	if (n != 1) {
+		error("read from cmd socket: %s", strerror(errno));
+		close(fd);
+		return NULL;
+	}
+	if (cmd != '+' && cmd != '-') {
+		error("bad command '%c'", cmd);
+		close(fd);
+		return NULL;
+	}
 	recv_str(fd, &dev);
 	n = recv_num(fd);
 	if (n > 0) {
