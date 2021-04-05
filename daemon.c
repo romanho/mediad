@@ -250,7 +250,10 @@ static void rm_child(mnt_t *p, mnt_t *m)
 	snprintf(path, sizeof(path), "%s/%s/part%02d",
 			 autodir, p->dir, m->partition);
 	if (unlink(path))
-		error("unlink(%s): %s", path, strerror(errno));
+		/* catatonic mode used to suppress errors, but I see them
+		 * again with 4.19 ?!? */
+		if (!shutting_down || errno != EACCES)
+			error("unlink(%s): %s", path, strerror(errno));
 }
 
 static void check_parent(mnt_t *m)

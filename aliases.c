@@ -170,7 +170,8 @@ static void rm_alias(mnt_t *m, alist_t *a)
 		return;
 
 	if (unlink(a->created)) {
-		warning("unlink(%s): %s", a->created, strerror(errno));
+		if (!shutting_down || errno != EACCES)
+			warning("unlink(%s): %s", a->created, strerror(errno));
 		return;
 	}
 	debug("removed alias '%s' to %s", a->created, m->dev);

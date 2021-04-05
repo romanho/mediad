@@ -150,7 +150,8 @@ void rm_dir(mnt_t *m)
 	
 	mkpath(path, m->dir);
 	if (rmdir(path))
-		warning("rmdir(%s): %s", path, strerror(errno));
+		if (!shutting_down || errno != EACCES)
+			warning("rmdir(%s): %s", path, strerror(errno));
 }
 
 void send_num(int fd, unsigned num)
