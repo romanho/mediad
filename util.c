@@ -103,15 +103,17 @@ size_t is_name_eq_val(const char *str)
 	return (n > 0 && str[n] == '=') ? n : 0;
 }
 
-#define Iget(name,field)											\
-	do {															\
-		const char *__p;											\
-		if ((__p = strprefix(line, name)) && *__p == '=') {			\
-			xfree(&m->field);										\
-			m->field = xstrdup(__p+1);								\
-			debug("found %s = '%s'", #field, m->field);				\
-			return;													\
-		}															\
+#define Iget(name,field)									\
+	do {													\
+		const char *__p;									\
+		if ((__p = strprefix(line, name)) && *__p == '=') {	\
+			xfree(&m->field);								\
+			if (__p[1]) {									\
+				m->field = xstrdup(__p+1);					\
+				debug("found %s = '%s'", #field, m->field);	\
+			}												\
+			return;											\
+		}													\
 	} while(0)
 
 void parse_id(mnt_t *m, const char *line)
