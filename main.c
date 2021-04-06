@@ -162,6 +162,14 @@ int main(int argc, char *argv[], char **env)
 	if (geteuid() != 0)
 		fatal("You must be root");
 	if (argc == 2 && streq(argv[1], "start")) {
+		/* fix command line shown in ps by overwriting argv[] */
+		const char *newname = "mediad";
+		unsigned nlen = strlen(newname)+1;
+		unsigned clen = argv[argc-1] + strlen(argv[argc-1]) - argv[0];
+		if (nlen > clen)
+			nlen = clen;
+		memcpy(argv[0], newname, nlen);
+		memset(argv[0]+nlen, 0, clen-nlen);
 		test_sock();
 		return 0;
 	}
