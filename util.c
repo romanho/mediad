@@ -226,3 +226,35 @@ unsigned int linux_version_code(void)
 
 	return KERNEL_VERSION(p, q, r);
 }
+
+#define SYS_CGROUP_UNIFIED	"/sys/fs/cgroup/unified"
+#define SYS_CGROUP_LEGACY	"/sys/fs/cgroup/pids"
+#define MEDIAD_GROUP		"system.slice/mediad.service"
+
+void cgroup_set(void)
+{
+	char path[PATH_MAX], *cgpath;
+	FILE *f;
+
+	if (access(SYS_CGROUP_UNIFIED, F_OK) == 0)
+		cgpath = SYS_CGROUP_UNIFIED;
+	else if (access(SYS_CGROUP_LEGACY, F_OK) == 0)
+		cgpath = SYS_CGROUP_LEGACY;
+	else
+		/* probably no systemd, no action needed for cgroup */
+		return;
+
+	snprintf(path, sizeof(path), "%s/%s", cgpath, MEDIAD_GROUP);
+	if (mkdir(path, 0755) < 0 && errno != EEXIST) {
+		warning("%s: %s", path, strerror(errno));
+		return;
+	}
+
+	strcat(path, "/cgroup.procs");
+	if (!(f = fopen(path, "w"))) {
+		warning("%s: %s", path, strerror(errno));
+		return;
+	}
+	fprintf(f, "%d\n", getpid());
+	fclose(f);
+}

@@ -679,6 +679,9 @@ int daemon_main(void)
 	
 	openlog("mediad", LOG_NDELAY|LOG_PID|LOG_CONS, LOG_DAEMON);
 	setpgrp();
+	/* remove from systemd-udev cgroup by moving to our own group,
+	 * otherwise a timeout by udev will SIGKILL us eventually */
+	cgroup_set();
 	if (chdir("/")) {
 		error("failed to chdir");
 		return 1;
