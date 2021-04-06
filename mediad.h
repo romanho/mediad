@@ -113,6 +113,7 @@ typedef struct _mnt {
 	unsigned        medium_changed : 1;
 	unsigned        mounted : 1;
 	unsigned        suppress_message : 1;
+	unsigned        delayed_message : 1;
 	unsigned        no_automount : 1;
 	check_change_t  check_change_strategy;
 	int             check_change_param;

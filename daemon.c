@@ -422,8 +422,11 @@ static void add_mount(const char *dev, const char *perm_alias,
 		/* delay the message if it looks like a partitioned device,
 		 * the printout will be suppressed if children appear */
 		pthread_t newthread;
-		pthread_create(&newthread, &thread_detached,
-					   delayed_message, m);
+		if (!m->delayed_message) {
+			m->delayed_message = 1;
+			pthread_create(&newthread, &thread_detached,
+						   delayed_message, m);
+		}
 	}
 	else {
 		msg("new %s/%s available (%s)", autodir, m->dir, msgbuf);
