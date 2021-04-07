@@ -31,6 +31,7 @@
 #include <sys/utsname.h>
 #include <netinet/in.h>
 #include <linux/version.h>
+#include <sched.h>
 #include "mediad.h"
 
 
@@ -258,4 +259,18 @@ void cgroup_set(const char *grp)
 	}
 	fprintf(f, "%d\n", getpid());
 	fclose(f);
+}
+
+/* set our mount namespace to that of PID */
+void set_mnt_ns(pid_t pid)
+{
+	char path[PATH_MAX];
+	int fd;
+
+	snprintf(path, sizeof(path), "/proc/%d/ns/mnt", pid);
+	if ((fd = open(path, O_RDONLY)) < 0)
+		fatal("%s: %s", path, strerror(errno));
+	if (setns(fd, CLONE_NEWNS) < 0)
+		fatal("setns: %s", path, strerror(errno));
+	close(fd);
 }
