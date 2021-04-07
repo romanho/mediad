@@ -1,4 +1,6 @@
+ACTION=="add", SUBSYSTEM=="block", SYSFS{removable}=="1", RUN+="/sbin/mediad "
+ACTION=="add", SUBSYSTEM=="block", SYSFS{removable}=="1", GOTO="handled"
 ACTION=="add", SUBSYSTEM=="block", ENV{ID_BUS}=="usb", RUN+="/sbin/mediad "
 ACTION=="add", SUBSYSTEM=="block", ENV{ID_BUS}=="ieee1394", RUN+="/sbin/mediad "
-ACTION=="add", SUBSYSTEM=="block", SYSFS{removable}=="1", RUN+="/sbin/mediad "
+LABEL="handled"
 ACTION=="remove", SUBSYSTEM=="block", RUN+="/sbin/mediad "
