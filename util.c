@@ -229,13 +229,14 @@ unsigned int linux_version_code(void)
 
 #define SYS_CGROUP_UNIFIED	"/sys/fs/cgroup/unified"
 #define SYS_CGROUP_LEGACY	"/sys/fs/cgroup/pids"
-#define MEDIAD_GROUP		"system.slice/mediad.service"
 
-void cgroup_set(void)
+/* put us to out own mediad.service cgroup */
+void cgroup_set(const char *grp)
 {
 	char path[PATH_MAX], *cgpath;
 	FILE *f;
 
+	/* use 'unified' if available (v2), 'pids' controller otherwise */
 	if (access(SYS_CGROUP_UNIFIED, F_OK) == 0)
 		cgpath = SYS_CGROUP_UNIFIED;
 	else if (access(SYS_CGROUP_LEGACY, F_OK) == 0)
@@ -244,7 +245,7 @@ void cgroup_set(void)
 		/* probably no systemd, no action needed for cgroup */
 		return;
 
-	snprintf(path, sizeof(path), "%s/%s", cgpath, MEDIAD_GROUP);
+	snprintf(path, sizeof(path), "%s/%s", cgpath, grp);
 	if (mkdir(path, 0755) < 0 && errno != EEXIST) {
 		warning("%s: %s", path, strerror(errno));
 		return;

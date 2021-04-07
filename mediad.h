@@ -252,6 +252,6 @@ void send_str(int fd, const char *str);
 unsigned recv_num(int fd);
 void recv_str(int fd, char **p);
 unsigned int linux_version_code(void);
-void cgroup_set(void);
+void cgroup_set(const char *grp);
 
 #endif /* MEDIAD_H */

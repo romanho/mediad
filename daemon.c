@@ -688,7 +688,7 @@ int daemon_main(void)
 	setpgrp();
 	/* remove from systemd-udev cgroup by moving to our own group,
 	 * otherwise a timeout by udev will SIGKILL us eventually */
-	cgroup_set();
+	cgroup_set("system.slice/mediad.service");
 	if (chdir("/")) {
 		error("failed to chdir");
 		return 1;
