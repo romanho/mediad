@@ -1,7 +1,7 @@
 CC      = gcc
 CFLAGS  = -O2 -g -D_FORTIFY_SOURCE=2
 LD      = gcc
-LDFLAGS =
+LDFLAGS = -g
 LIBS    = -ludev -lpthread
 
 OBJS = main.o daemon.o autofs.o changed.o device.o config.o \
@@ -15,7 +15,7 @@ MAN5DIR = /usr/share/man/man5
 MAN8DIR = /usr/share/man/man8
 
 mediad: $(OBJS)
-	$(LD) -o $@ $^ $(LIBS)
+	$(LD) $(LDFLAGS) -o $@ $^ $(LIBS)
 
 $(OBJS): mediad.h
 
