@@ -61,12 +61,15 @@ void get_dev_infos(mnt_t *m)
 
 void find_devpath(mnt_t *m)
 {
+	const char *devname = m->dev, *p;
 	struct udev_device *dev;
 
 	if (m->devpath)
 		return;
+	if ((p = strprefix(devname, "/dev/")))
+		devname = p;
 
-	if (!(dev = udev_device_new_from_subsystem_sysname(udev, "block", m->dev))) {
+	if (!(dev = udev_device_new_from_subsystem_sysname(udev, "block", devname))) {
 		error("%s: failed to get udev object", m->dev);
 		return;
 	}
@@ -110,7 +113,7 @@ int find_by_property(const char *propname, const char *propval,
 		if (!dev)
 			continue;
 		if (!outname[0])
-			snprintf(outname, outsize, "%s", udev_device_get_sysname(dev));
+			snprintf(outname, outsize, "/dev/%s", udev_device_get_sysname(dev));
 		else	
 			warning("ambigous %s=%s (%s and %s are matching)",
 					propname, propval, outname,

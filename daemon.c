@@ -346,9 +346,15 @@ static void add_mount(const char *dev, const char *perm_alias,
 	char *msgbuf;
 	unsigned options;
 
-	/* cut off /dev/ prefix if present for consistent handling */
-	if ((p = strprefix(dev, "/dev/")))
-		dev = p;
+	/* check for /dev prefix, to catch bad callers that come without */
+	if (!strprefix(dev, "/dev/")) {
+		char *edev = alloca(strlen("/dev/")+strlen(dev)+1);
+		warning("%s called with dev without /dev/ prefix", __func__);
+		show_backtrace();
+		sprintf(edev, "/dev/%s", dev);
+		dev = edev;
+	}
+
 	debug("add request for %s", dev);
 	/* try to re-read config file if it has changed */
 	read_config();
