@@ -341,7 +341,6 @@ static void *delayed_message(void *mnt)
 static void add_mount(const char *dev, const char *perm_alias,
 					  unsigned n, char **ids)
 {
-	const char *p;
 	mnt_t *m;
 	unsigned i, mpres;
 	char *msgbuf;

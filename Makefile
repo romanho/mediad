@@ -1,5 +1,5 @@
 CC      = gcc
-CFLAGS  = -O2 -g -D_FORTIFY_SOURCE=2
+CFLAGS  = -O2 -g -D_FORTIFY_SOURCE=2 -Wall -Werror
 LD      = gcc
 LDFLAGS = -g
 LIBS    = -ludev -lpthread
