@@ -256,7 +256,7 @@ static void rm_child(mnt_t *p, mnt_t *m)
 			error("unlink(%s): %s", path, strerror(errno));
 }
 
-static void check_parent(mnt_t *m)
+static void check_parent(mnt_t *m, int show_warn)
 {
 	mnt_t *par;
 	char *fname, *p;
@@ -285,7 +285,8 @@ static void check_parent(mnt_t *m)
 	*p = '\0';
 
 	if (!(par = get_mount(by_devpath, fname+4, 0, 6))) {
-		warning("parent device (devpath=%s) for %s not found!", fname+4, m->dev);
+		if (show_warn)
+			warning("parent device (devpath=%s) for %s not found!", fname+4, m->dev);
 		return;
 	}
 
@@ -383,7 +384,9 @@ static void add_mount(const char *dev, const char *perm_alias,
 	for(i = 0; i < n; ++i)
 		parse_id(m, ids[i]);
 	find_devpath(m);
-	check_parent(m);
+	/* suppress "no parent found" warning if called with perm_alias set from
+	 * scan_fstab */
+	check_parent(m, !perm_alias);
 	if (!m->parent)
 		m->medium_present = check_medium(m->dev);
 	mpres = m->parent ? m->parent->medium_present:m->medium_present;
