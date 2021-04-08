@@ -1,15 +1,19 @@
-mediad (0.11.99.1) unstable; urgency=medium
+mediad (0.12) unstable; urgency=medium
 
   * Switch from libblkid to libudev, which uniformly gives more infos, and
     is easier to handle.
   * Added "coldplugging", i.e. scanning of devices existing at start.
   * Recognize LABEL= and UUID= in devname of /etc/fstab.
-  * fix warning in update-rc.d call
-  * fix various compiler warnings
-  * added service file for systemd
-  * modernized Debian packaging and made (nearly) lintian-clean
+  * Fix doubled "new ... available" in some cases.
+  * Fix warning in update-rc.d call
+  * Fix various compiler warnings
+  * Suppress shutdown "unlink: permission denied" errors with newer kernels
+  * Fix various udev and systemd interaction issues (cgroup, mount
+    namespace, ...)
+  * Added service file for systemd
+  * Modernized Debian packaging and made (nearly) lintian-clean
 
- -- Roman Hodek <roman@ridcully.hodek.net>  Thu, 11 Feb 2021 19:59:57 +0100
+ -- Roman Hodek <roman@ridcully.hodek.net>  Thu, 08 Apr 2021 22:49:00 +0200
 
 mediad (0.11) unstable; urgency=medium
 
