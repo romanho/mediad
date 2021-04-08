@@ -276,6 +276,19 @@ void set_mnt_ns(pid_t pid)
 	close(fd);
 }
 
+/* set our comm name */
+void set_comm(const char *c)
+{
+	char path[PATH_MAX];
+	FILE *f;
+
+	snprintf(path, sizeof(path), "/proc/%d/comm", getpid());
+	if (!(f = fopen(path, "w")))
+		fatal("%s: %s", path, strerror(errno));
+	fprintf(f, "%s", c);
+	fclose(f);
+}
+
 void show_backtrace(void)
 {
 	const unsigned maxaddr = 32;

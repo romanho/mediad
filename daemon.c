@@ -698,6 +698,10 @@ int daemon_main(void)
 	/* remove from systemd-udev cgroup by moving to our own group,
 	 * otherwise a timeout by udev will SIGKILL us eventually */
 	cgroup_set("system.slice/mediad.service");
+	/* set comm name to start with '('; this is to suppress a warning by
+	 * systemd about a supposedly left-over process if it recognizes the
+	 * cgroup already exists */
+	set_comm("(mediad)");
 	/* use init's mount namespace, if udev used a different one */
 	set_mnt_ns(1);
 	if (chdir("/")) {
