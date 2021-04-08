@@ -32,6 +32,7 @@
 #include <netinet/in.h>
 #include <linux/version.h>
 #include <sched.h>
+#include <execinfo.h>
 #include "mediad.h"
 
 
@@ -273,4 +274,20 @@ void set_mnt_ns(pid_t pid)
 	if (setns(fd, CLONE_NEWNS) < 0)
 		fatal("setns: %s", path, strerror(errno));
 	close(fd);
+}
+
+void show_backtrace(void)
+{
+	const unsigned maxaddr = 32;
+	void *btaddr[maxaddr];
+	unsigned n, i;
+	char **syms;
+
+	n = backtrace(btaddr, maxaddr);
+	syms = backtrace_symbols(btaddr, n);
+	debug("Backtrace:");
+	/* start at 1 to skip our direct caller */
+	for(i = 1; i < n; ++i)
+		debug("  %s", syms[i]);
+	free(syms);
 }

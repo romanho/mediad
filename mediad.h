@@ -254,5 +254,6 @@ void recv_str(int fd, char **p);
 unsigned int linux_version_code(void);
 void cgroup_set(const char *grp);
 void set_mnt_ns(pid_t pid);
+void show_backtrace(void);
 
 #endif /* MEDIAD_H */
