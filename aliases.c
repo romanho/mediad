@@ -191,6 +191,18 @@ void rm_aliases(mnt_t *m, whatalias_t fsspec)
 	}
 }
 
+int has_alias(mnt_t *m, const char *name)
+{
+	alist_t *a;
+	unsigned preflen = strlen(autodir)+1;
+
+	for(a = m->aliases; a; a = a->next) {
+		if (a->created && streq(a->created+preflen, name))
+			return 1;
+	}
+	return 0;
+}
+
 void mnt_add_alias(mnt_t *m, const char *a, unsigned flags)
 {
 	alist_t *al;

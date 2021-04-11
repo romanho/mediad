@@ -58,9 +58,17 @@ static mnt_t *mounts = NULL;
 static pthread_mutex_t mounts_lock = PTHREAD_MUTEX_INITIALIZER;
 static pthread_mutexattr_t rec_mutex;
 
+
+int has_alias(mnt_t *m, const char *name);
+
 static int by_dirname(mnt_t *m, const void *arg)
 {
 	return streq(m->dir, (const char*)arg);
+}
+static int by_dirname_or_alias(mnt_t *m, const void *arg)
+{
+	const char *name = (const char*)arg;
+	return (streq(m->dir, name) || has_alias(m, name));
 }
 static int by_dev(mnt_t *m, const void *arg)
 {
@@ -179,10 +187,10 @@ int do_umount(const char *name)
 	int err;
 	char path[strlen(autodir)+strlen(name)+2];
 
-	if (!(m = get_mount(by_dirname, name, 0, 0)))
+	if (!(m = get_mount(by_dirname_or_alias, name, 0, 0)))
 		return -1;
 	if (!m->mounted) {
-		debug("%s already unmounted by another thread", name);
+		//debug("%s already unmounted (by another thread?)", name);
 		pthread_mutex_unlock(&m->lock);
 		return 0;
 	}
